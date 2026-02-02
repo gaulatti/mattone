@@ -1,0 +1,112 @@
+name: Backend Deployment
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - '.github/workflows/backend-deploy.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Backend
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      - name: Setup pnpm cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        working-directory: ./backend
+        run: pnpm install --frozen-lockfile
+
+      - name: Run lint
+        working-directory: ./backend
+        run: pnpm run lint
+
+      - name: Run tests
+        working-directory: ./backend
+        run: pnpm run test
+
+      - name: Build
+        working-directory: ./backend
+        run: pnpm run build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-build
+          path: |
+            backend/dist
+            backend/package.json
+            backend/pnpm-lock.yaml
+          retention-days: 1
+
+  deploy:
+    name: Deploy Backend
+    runs-on: ubuntu-latest
+    needs: build
+    environment: production
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-build
+          path: backend/
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Install infrastructure dependencies
+        working-directory: ./infrastructure
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy backend with CDK
+        working-directory: ./infrastructure
+        run: |
+          pnpm cdk deploy --require-approval never --all
+        env:
+          BACKEND_PATH: ../backend
