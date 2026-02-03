@@ -40,6 +40,5 @@ export class SseController {
       clearInterval(heartbeat);
       this.sseService.unregisterConnection(deviceCode);
     });
-    });
   }
 }
