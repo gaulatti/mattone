@@ -84,7 +84,9 @@ export class M3uService {
       }
 
       await queryRunner.commitTransaction();
-      this.logger.log(`Imported ${channels.length} channels for user ${user.id}`);
+      this.logger.log(
+        `Imported ${channels.length} channels for user ${user.id}`,
+      );
       return { count: channels.length };
     } catch (err) {
       this.logger.error(`Failed to import channels: ${err.message}`, err.stack);
