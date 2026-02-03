@@ -25,7 +25,6 @@ jobs:
       # Build the Docker image
       - name: Build Docker image
         run: |
-          cd backend
           docker build -t ghcr.io/${{ github.repository }}:latest .
 
       # Push the Docker image to GHCR
@@ -51,25 +50,30 @@ jobs:
             docker pull ghcr.io/${{ github.repository }}:latest
 
             # Stop and remove any running container with the same name
-            docker stop mattone-backend || true
-            docker rm mattone-backend || true
+            docker stop cronkite || true
+            docker rm cronkite || true
 
             # Generate a UUID for awslogs-stream
             LOG_STREAM_UUID=$(uuidgen)
 
             # Run the new container
-            docker run -d --name mattone-backend \
+            docker run -d --name cronkite \
             -p ${{ secrets.HTTP_PORT }}:${{ secrets.HTTP_PORT }} \
-            -e PORT="${{ secrets.HTTP_PORT }}" \
-            -e DB_HOST="${{ secrets.DB_HOST }}" \
-            -e DB_PORT="${{ secrets.DB_PORT }}" \
-            -e DB_USER="${{ secrets.DB_USER }}" \
-            -e DB_PASS="${{ secrets.DB_PASS }}" \
-            -e DB_NAME="${{ secrets.DB_NAME }}" \
-            -e COGNITO_CLIENT_ID="${{ vars.VITE_COGNITO_CLIENT_ID }}" \
-            -e COGNITO_REGION="${{ vars.AWS_REGION }}" \
-            -e COGNITO_USER_POOL_ID="${{ vars.VITE_COGNITO_USER_POOL_ID }}" \
+            -e AWS_REGION=${{ secrets.AWS_REGION }} \
+            -e AWS_ACCOUNT_ID=${{ secrets.AWS_ACCOUNT_ID }} \
+            -e DB_CREDENTIALS="${{ secrets.DB_CREDENTIALS }}" \
+            -e DB_DATABASE="${{ secrets.DB_DATABASE }}" \
+            -e SERVICE_FQDN="${{ secrets.SERVICE_FQDN }}" \
+            -e HTTP_PORT="${{ secrets.HTTP_PORT }}" \
+            -e N8N_WEBHOOK="${{ secrets.N8N_WEBHOOK }}" \
+            -e N8N_API_KEY="${{ secrets.N8N_API_KEY }}" \
+            -e VALKEY_HOST="${{ secrets.VALKEY_HOST }}" \
+            -e CONTAINERIZED=true \
             --restart=always \
+            --log-driver=awslogs \
+            --log-opt awslogs-region=${{ secrets.AWS_REGION }} \
+            --log-opt awslogs-group=${{ vars.LOGS_GROUP }} \
+            --log-opt awslogs-stream="$LOG_STREAM_UUID" \
             -v ~/.aws:/root/.aws:ro \
             ghcr.io/${{ github.repository }}:latest
             '
