@@ -3,6 +3,9 @@ FROM node:21
 
 WORKDIR /app
 
+# Install pnpm
+RUN npm install -g pnpm
+
 # Copy only package files initially to leverage Docker cache for dependencies
 COPY package*.json pnpm-lock.yaml ./
 RUN pnpm install
