@@ -25,7 +25,7 @@ jobs:
       # Build the Docker image
       - name: Build Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository }}:latest .
+          docker build -t ghcr.io/${{ github.repository }}:latest ./backend
 
       # Push the Docker image to GHCR
       - name: Push Docker image to GHCR
