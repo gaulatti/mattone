@@ -3,14 +3,13 @@ import {
   Post,
   Body,
   UseGuards,
-  UseInterceptors,
-  UploadedFile,
   BadRequestException,
+  Req,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { M3uService } from './m3u.service';
 import { ImportM3uDto } from './dto/import-m3u.dto';
+import type { FastifyRequest } from 'fastify';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('channels')
@@ -23,12 +22,12 @@ export class M3uController {
   }
 
   @Post('import/file')
-  @UseInterceptors(FileInterceptor('file'))
-  async uploadFile(@UploadedFile() file: Express.Multer.File) {
-    if (!file) {
+  async uploadFile(@Req() request: FastifyRequest) {
+    const data = await request.file();
+    if (!data) {
       throw new BadRequestException('File is required');
     }
-    const content = file.buffer.toString('utf-8');
-    return this.m3uService.importFile(content);
+    const content = await data.toBuffer();
+    return this.m3uService.importFile(content.toString('utf-8'));
   }
 }
