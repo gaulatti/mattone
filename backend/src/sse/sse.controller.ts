@@ -1,44 +1,43 @@
-import { Controller, Get, Query, Res, Req } from '@nestjs/common';
-import type { FastifyReply, FastifyRequest } from 'fastify';
+import {
+  BadRequestException,
+  Controller,
+  MessageEvent,
+  Query,
+  Sse,
+} from '@nestjs/common';
+import { Observable, interval, merge } from 'rxjs';
+import { map, takeUntil } from 'rxjs/operators';
 import { SseService } from './sse.service';
 
 @Controller('sse')
 export class SseController {
   constructor(private readonly sseService: SseService) {}
 
-  @Get('events')
-  async handleSse(
+  @Sse('events')
+  handleSse(
     @Query('device_code') deviceCode: string,
-    @Res({ passthrough: false }) res: FastifyReply,
-    @Req() req: FastifyRequest,
-  ): Promise<void> {
+  ): Observable<MessageEvent> {
     if (!deviceCode) {
-      res.status(400).send('device_code is required');
-      return;
+      throw new BadRequestException('device_code is required');
     }
 
-    // Hijack the connection for SSE
-    res.hijack();
-    const stream = res.raw;
+    // Register the device and get its message stream
+    const messageStream$ = this.sseService.getMessageStream(deviceCode);
+    const disconnect$ = this.sseService.getDisconnectStream(deviceCode);
 
-    stream.setHeader('Content-Type', 'text/event-stream');
-    stream.setHeader('Cache-Control', 'no-cache');
-    stream.setHeader('Connection', 'keep-alive');
-    stream.setHeader('Access-Control-Allow-Origin', '*');
-    stream.write('\n');
+    // Create heartbeat stream (every 30 seconds)
+    const heartbeat$ = interval(30000).pipe(
+      map(() => ({ data: { type: 'heartbeat' } }) as MessageEvent),
+    );
 
-    this.sseService.registerConnection(deviceCode, stream);
-
-    const heartbeat = setInterval(() => {
-      stream.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
-    }, 30000);
-
-    // Initial message
-    stream.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
-
-    stream.on('close', () => {
-      clearInterval(heartbeat);
-      this.sseService.unregisterConnection(deviceCode);
+    // Send initial connected message
+    const connected$ = new Observable<MessageEvent>((subscriber) => {
+      subscriber.next({ data: { type: 'connected' } } as MessageEvent);
     });
+
+    // Merge all streams and stop on disconnect
+    return merge(connected$, heartbeat$, messageStream$).pipe(
+      takeUntil(disconnect$),
+    );
   }
 }

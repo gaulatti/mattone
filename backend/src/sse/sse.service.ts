@@ -1,56 +1,75 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ServerResponse } from 'http';
-import { Subject } from 'rxjs';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
+import { Subject, Observable } from 'rxjs';
+import { filter, map } from 'rxjs/operators';
 
 export interface SSEMessage {
   type: string;
   [key: string]: any;
 }
 
+interface DeviceMessage {
+  deviceCode: string;
+  payload: SSEMessage;
+}
+
 @Injectable()
-export class SseService {
+export class SseService implements OnModuleDestroy {
   private readonly logger = new Logger(SseService.name);
-  private connections: Map<string, ServerResponse> = new Map();
+  private readonly messageSubject = new Subject<DeviceMessage>();
+  private readonly disconnectSubject = new Subject<string>();
+  private readonly activeConnections = new Set<string>();
   public readonly connectionSubject = new Subject<string>();
 
-  registerConnection(deviceCode: string, res: ServerResponse) {
-    // If there's an existing connection, close it
-    if (this.connections.has(deviceCode)) {
-      this.connections.get(deviceCode)?.end();
+  onModuleDestroy() {
+    this.messageSubject.complete();
+    this.disconnectSubject.complete();
+    this.connectionSubject.complete();
+  }
+
+  getMessageStream(deviceCode: string): Observable<any> {
+    // Register the connection
+    if (this.activeConnections.has(deviceCode)) {
+      this.logger.warn(`Device ${deviceCode} reconnecting, closing previous connection`);
+      this.disconnectSubject.next(deviceCode);
     }
 
-    this.connections.set(deviceCode, res);
+    this.activeConnections.add(deviceCode);
     this.logger.log(`Device connected: ${deviceCode}`);
     this.connectionSubject.next(deviceCode);
 
-    // Remove connection on close
-    res.on('close', () => {
-      this.unregisterConnection(deviceCode);
-    });
+    // Return filtered message stream for this device
+    return this.messageSubject.pipe(
+      filter((msg) => msg.deviceCode === deviceCode),
+      map((msg) => ({ data: msg.payload })),
+    );
   }
 
-  unregisterConnection(deviceCode: string) {
-    if (this.connections.has(deviceCode)) {
-      this.connections.delete(deviceCode);
-      this.logger.log(`Device disconnected: ${deviceCode}`);
-    }
+  getDisconnectStream(deviceCode: string): Observable<void> {
+    return this.disconnectSubject.pipe(
+      filter((code) => code === deviceCode),
+      map(() => {
+        this.activeConnections.delete(deviceCode);
+        this.logger.log(`Device disconnected: ${deviceCode}`);
+        return undefined;
+      }),
+    );
   }
 
-  sendCommand(deviceCode: string, payload: SSEMessage) {
-    const res = this.connections.get(deviceCode);
-    if (!res) {
+  sendCommand(deviceCode: string, payload: SSEMessage): boolean {
+    if (!this.activeConnections.has(deviceCode)) {
       this.logger.warn(
         `Attempted to send command to disconnected device: ${deviceCode}`,
       );
       return false;
     }
 
-    res.write(`data: ${JSON.stringify(payload)}\n\n`);
-    // @ts-ignore - flush headers if possible (standard node http response doesn't strictly need it for SSE if write is used, but good practice if behind proxy)
-    if (typeof res.flush === 'function') {
-      // @ts-ignore
-      res.flush();
-    }
+    this.messageSubject.next({ deviceCode, payload });
     return true;
+  }
+
+  disconnectDevice(deviceCode: string): void {
+    if (this.activeConnections.has(deviceCode)) {
+      this.disconnectSubject.next(deviceCode);
+    }
   }
 }
