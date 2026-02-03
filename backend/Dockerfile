@@ -14,7 +14,7 @@ RUN pnpm install
 COPY . .
 
 # Build the application
-RUN npm run build
+RUN pnpm run build
 
 # Set default environment variables
 ENV PORT=8080
@@ -31,4 +31,4 @@ ENV COGNITO_USER_POOL_ID=your_pool_id
 EXPOSE 8080
 
 # Start the server as the default command
-CMD ["node", "dist/src/main"]
+CMD ["node", "dist/main"]
