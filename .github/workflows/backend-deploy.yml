@@ -70,10 +70,6 @@ jobs:
             -e COGNITO_REGION="${{ vars.AWS_REGION }}" \
             -e COGNITO_USER_POOL_ID="${{ secrets.VITE_COGNITO_USER_POOL_ID }}" \
             --restart=always \
-            # --log-driver=awslogs \
-            # --log-opt awslogs-region=${{ vars.AWS_REGION }} \
-            # --log-opt awslogs-group=${{ vars.LOGS_GROUP }} \
-            --log-opt awslogs-stream="$LOG_STREAM_UUID" \
             -v ~/.aws:/root/.aws:ro \
             ghcr.io/${{ github.repository }}:latest
             '
