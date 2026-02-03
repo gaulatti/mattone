@@ -44,8 +44,10 @@ export class DevicesService implements OnModuleInit {
         this.logger.log(
           `Syncing state for device ${deviceCode} with channel ${device.activeChannelId}`,
         );
+        // Ensure the channel belongs to the device's user
         const channel = await this.channelRepository.findOneBy({
           id: device.activeChannelId,
+          userId: device.userId,
         });
         if (channel) {
           const payload = {
@@ -124,8 +126,10 @@ export class DevicesService implements OnModuleInit {
       throw new NotFoundException('Device not found');
     }
 
+    // Ensure the channel belongs to this user
     const channel = await this.channelRepository.findOneBy({
       id: command.channelId,
+      userId: user.id,
     });
     if (!channel) {
       throw new NotFoundException('Channel not found');

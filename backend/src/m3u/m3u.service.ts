@@ -8,6 +8,7 @@ import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { Channel } from '../entities/channel.entity';
+import { User } from '../entities/user.entity';
 import { lastValueFrom } from 'rxjs';
 import { ImportM3uDto } from './dto/import-m3u.dto';
 
@@ -22,12 +23,15 @@ export class M3uService {
     private dataSource: DataSource,
   ) {}
 
-  async import(importM3uDto: ImportM3uDto): Promise<{ count: number }> {
+  async import(
+    user: User,
+    importM3uDto: ImportM3uDto,
+  ): Promise<{ count: number }> {
     const { url } = importM3uDto;
 
     let content: string;
     try {
-      this.logger.log(`Fetching M3U from ${url}`);
+      this.logger.log(`Fetching M3U from ${url} for user ${user.id}`);
       const response = await lastValueFrom(this.httpService.get(url));
       content = response.data;
       this.logger.log(`Fetched ${content.length} bytes`);
@@ -36,36 +40,36 @@ export class M3uService {
       throw new BadRequestException(`Failed to fetch M3U: ${err.message}`);
     }
 
-    const channels = this.parseM3u(content, url);
-    return this.saveChannels(channels);
+    const channels = this.parseM3u(content, url, user.id);
+    return this.saveChannels(user, channels);
   }
 
-  async importFile(fileContent: string): Promise<{ count: number }> {
-    const channels = this.parseM3u(fileContent, 'file-upload');
-    return this.saveChannels(channels);
+  async importFile(
+    user: User,
+    fileContent: string,
+  ): Promise<{ count: number }> {
+    const channels = this.parseM3u(fileContent, 'file-upload', user.id);
+    return this.saveChannels(user, channels);
   }
 
   private async saveChannels(
+    user: User,
     channels: Partial<Channel>[],
   ): Promise<{ count: number }> {
-    this.logger.log(`Parsed ${channels.length} channels`);
+    this.logger.log(`Parsed ${channels.length} channels for user ${user.id}`);
 
     if (channels.length === 0) {
       return { count: 0 };
     }
-
-    // Transaction to clear old channels and insert new ones?
-    // Or just insert? The prompt implies import.
-    // Go implementation didn't show the delete part in the snippet I saw.
-    // I'll assume replace logic which is cleaner for m3u lists.
 
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      this.logger.log('Clearing existing channels...');
-      await queryRunner.manager.clear(Channel); // Danger: clears all channels
+      // Only clear channels for this specific user
+      this.logger.log(`Clearing existing channels for user ${user.id}...`);
+      await queryRunner.manager.delete(Channel, { userId: user.id });
 
       // Batch save
       const chunkSize = 100;
@@ -80,7 +84,7 @@ export class M3uService {
       }
 
       await queryRunner.commitTransaction();
-      this.logger.log(`Imported ${channels.length} channels`);
+      this.logger.log(`Imported ${channels.length} channels for user ${user.id}`);
       return { count: channels.length };
     } catch (err) {
       this.logger.error(`Failed to import channels: ${err.message}`, err.stack);
@@ -91,7 +95,11 @@ export class M3uService {
     }
   }
 
-  private parseM3u(content: string, sourceUrl: string): Partial<Channel>[] {
+  private parseM3u(
+    content: string,
+    sourceUrl: string,
+    userId: string,
+  ): Partial<Channel>[] {
     const lines = content.split(/\r?\n/);
     const channels: Partial<Channel>[] = [];
     let currentChannel: Partial<Channel> | null = null;
@@ -105,7 +113,7 @@ export class M3uService {
       if (!trimmed || trimmed === '#EXTM3U') continue;
 
       if (trimmed.startsWith('#EXTINF:')) {
-        currentChannel = { sourceUrl };
+        currentChannel = { sourceUrl, userId };
 
         const nameMatch = trimmed.match(tvgNameRegex);
         if (nameMatch) currentChannel.tvgName = nameMatch[1];
