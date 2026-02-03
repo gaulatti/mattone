@@ -23,7 +23,7 @@ export class M3uController {
 
   @Post('import/file')
   async uploadFile(@Req() request: FastifyRequest) {
-    const data = await request.file();
+    const data: any = await (request as any).file();
     if (!data) {
       throw new BadRequestException('File is required');
     }
