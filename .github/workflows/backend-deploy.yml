@@ -66,9 +66,9 @@ jobs:
             -e DB_USER="${{ secrets.DB_USER }}" \
             -e DB_PASS="${{ secrets.DB_PASS }}" \
             -e DB_NAME="${{ secrets.DB_NAME }}" \
-            -e COGNITO_CLIENT_ID="${{ secrets.VITE_COGNITO_CLIENT_ID }}" \
+            -e COGNITO_CLIENT_ID="${{ vars.VITE_COGNITO_CLIENT_ID }}" \
             -e COGNITO_REGION="${{ vars.AWS_REGION }}" \
-            -e COGNITO_USER_POOL_ID="${{ secrets.VITE_COGNITO_USER_POOL_ID }}" \
+            -e COGNITO_USER_POOL_ID="${{ vars.VITE_COGNITO_USER_POOL_ID }}" \
             --restart=always \
             -v ~/.aws:/root/.aws:ro \
             ghcr.io/${{ github.repository }}:latest
