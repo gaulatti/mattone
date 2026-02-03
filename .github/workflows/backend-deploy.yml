@@ -59,7 +59,7 @@ jobs:
 
             # Run the new container
             docker run -d --name mattone-backend \
-            -p ${{ secrets.HTTP_PORT }}:8080 \
+            -p ${{ secrets.HTTP_PORT }}:3000 \
             -e PORT="${{ secrets.HTTP_PORT }}" \
             -e DB_HOST="${{ secrets.DB_HOST }}" \
             -e DB_PORT="${{ secrets.DB_PORT }}" \
