@@ -29,7 +29,9 @@ export class SseService implements OnModuleDestroy {
   getMessageStream(deviceCode: string): Observable<any> {
     // Register the connection
     if (this.activeConnections.has(deviceCode)) {
-      this.logger.warn(`Device ${deviceCode} reconnecting, closing previous connection`);
+      this.logger.warn(
+        `Device ${deviceCode} reconnecting, closing previous connection`,
+      );
       this.disconnectSubject.next(deviceCode);
     }
 
