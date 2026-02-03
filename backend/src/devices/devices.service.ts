@@ -113,7 +113,7 @@ export class DevicesService implements OnModuleInit {
     }
 
     await this.deviceRepository.remove(device);
-    this.sseService.unregisterConnection(device.deviceCode);
+    this.sseService.disconnectDevice(device.deviceCode);
   }
 
   async play(id: string, user: User, command: PlayCommandDto) {
