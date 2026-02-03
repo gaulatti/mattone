@@ -1,5 +1,5 @@
 import { Controller, Get, Query, Res, Req } from '@nestjs/common';
-import type { Response, Request } from 'express';
+import type { FastifyReply, FastifyRequest } from 'fastify';
 import { SseService } from './sse.service';
 
 @Controller('sse')
@@ -7,35 +7,39 @@ export class SseController {
   constructor(private readonly sseService: SseService) {}
 
   @Get('events')
-  handleSse(
+  async handleSse(
     @Query('device_code') deviceCode: string,
-    @Res() res: Response,
-    @Req() req: Request,
-  ) {
+    @Res({ passthrough: false }) res: FastifyReply,
+    @Req() req: FastifyRequest,
+  ): Promise<void> {
     if (!deviceCode) {
       res.status(400).send('device_code is required');
       return;
     }
 
-    res.setHeader('Content-Type', 'text/event-stream');
-    res.setHeader('Cache-Control', 'no-cache');
-    res.setHeader('Connection', 'keep-alive');
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    // Hijack the connection for SSE
+    res.hijack();
+    const stream = res.raw;
 
-    this.sseService.registerConnection(deviceCode, res);
+    stream.setHeader('Content-Type', 'text/event-stream');
+    stream.setHeader('Cache-Control', 'no-cache');
+    stream.setHeader('Connection', 'keep-alive');
+    stream.setHeader('Access-Control-Allow-Origin', '*');
+    stream.write('\n');
+
+    this.sseService.registerConnection(deviceCode, stream);
 
     const heartbeat = setInterval(() => {
-      res.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
-      // @ts-ignore
-      if (typeof res.flush === 'function') res.flush();
+      stream.write(`data: ${JSON.stringify({ type: 'heartbeat' })}\n\n`);
     }, 30000);
 
     // Initial message
-    res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
+    stream.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
 
-    req.on('close', () => {
+    stream.on('close', () => {
       clearInterval(heartbeat);
       this.sseService.unregisterConnection(deviceCode);
+    });
     });
   }
 }

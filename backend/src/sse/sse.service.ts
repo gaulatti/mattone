@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Response } from 'express';
+import { ServerResponse } from 'http';
 import { Subject } from 'rxjs';
 
 export interface SSEMessage {
@@ -10,10 +10,10 @@ export interface SSEMessage {
 @Injectable()
 export class SseService {
   private readonly logger = new Logger(SseService.name);
-  private connections: Map<string, Response> = new Map();
+  private connections: Map<string, ServerResponse> = new Map();
   public readonly connectionSubject = new Subject<string>();
 
-  registerConnection(deviceCode: string, res: Response) {
+  registerConnection(deviceCode: string, res: ServerResponse) {
     // If there's an existing connection, close it
     if (this.connections.has(deviceCode)) {
       this.connections.get(deviceCode)?.end();
