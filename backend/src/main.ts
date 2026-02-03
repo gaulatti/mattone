@@ -14,7 +14,8 @@ async function bootstrap() {
     new FastifyAdapter(),
   );
 
-  await app.register(multipart);
+  // Cast to any to avoid type mismatch between Fastify versions in typings
+  await app.register(multipart as any);
 
   app.enableCors();
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
