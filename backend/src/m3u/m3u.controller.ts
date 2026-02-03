@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { M3uService } from './m3u.service';
 import { ImportM3uDto } from './dto/import-m3u.dto';
@@ -9,7 +9,7 @@ export class M3uController {
   constructor(private readonly m3uService: M3uService) {}
 
   @Post('import')
-  async import(@Body() importM3uDto: ImportM3uDto) {
-    return this.m3uService.import(importM3uDto);
+  async import(@Request() req, @Body() importM3uDto: ImportM3uDto) {
+    return this.m3uService.import(req.user, importM3uDto);
   }
 }
