@@ -6,16 +6,12 @@ import {
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import multipart from '@fastify/multipart';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter(),
   );
-
-  // Register multipart plugin for file uploads
-  await app.register(multipart);
 
   app.enableCors();
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
