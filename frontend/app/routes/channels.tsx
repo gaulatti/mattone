@@ -15,6 +15,7 @@ export default function Channels() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [page, setPage] = useState<number>(1);
   const [selectedDeviceForPlay, setSelectedDeviceForPlay] = useState<string>('');
+  const PERSIST_KEY = 'mattone:selectedDeviceId';
   const [activeChannelForPlay, setActiveChannelForPlay] = useState<Channel | null>(null);
 
   const debouncedSearch = useDebounce(searchQuery, 500);
@@ -29,13 +30,42 @@ export default function Channels() {
   const { data: devices = [] } = useDevices();
   const playDevice = usePlayDevice();
 
+  // Load persisted device selection
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const stored = window.localStorage.getItem(PERSIST_KEY);
+    if (stored) {
+      setSelectedDeviceForPlay(stored);
+    }
+  }, []);
+
+  // Ensure persisted selection still exists; if removed, clear it
+  useEffect(() => {
+    if (!selectedDeviceForPlay) return;
+    const exists = devices.some((d) => d.id === selectedDeviceForPlay);
+    if (!exists) {
+      setSelectedDeviceForPlay('');
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem(PERSIST_KEY);
+      }
+    }
+  }, [devices, selectedDeviceForPlay]);
+
   const channels = data?.data || [];
   const total = data?.total || 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const handlePlayClick = (channel: Channel) => {
     setActiveChannelForPlay(channel);
-    setSelectedDeviceForPlay(''); // Reset selection
+    // When opening, keep last used device if still present
+    if (selectedDeviceForPlay) return;
+    // otherwise, attempt to load persisted value again (covers devices loaded after open)
+    if (typeof window !== 'undefined') {
+      const stored = window.localStorage.getItem(PERSIST_KEY);
+      if (stored && devices.some((d) => d.id === stored)) {
+        setSelectedDeviceForPlay(stored);
+      }
+    }
   };
 
   const handleConfirmPlay = () => {
@@ -45,7 +75,9 @@ export default function Channels() {
         {
           onSuccess: () => {
             setActiveChannelForPlay(null);
-            setSelectedDeviceForPlay('');
+            if (typeof window !== 'undefined') {
+              window.localStorage.setItem(PERSIST_KEY, selectedDeviceForPlay);
+            }
           }
         }
       );
@@ -54,7 +86,6 @@ export default function Channels() {
 
   const handleCancelPlay = () => {
     setActiveChannelForPlay(null);
-    setSelectedDeviceForPlay('');
   };
 
   if (isLoadingChannels && page === 1) {
