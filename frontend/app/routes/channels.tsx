@@ -1,12 +1,13 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { Channel } from '../types';
 import Select from '../components/common/Select';
 import Modal from '../components/common/Modal';
 import { useChannels, useChannelGroups } from '../services/queries/useChannels';
 import { useDevices, usePlayDevice } from '../services/queries/useDevices';
+import { useSelectedDevice } from '../hooks/useSelectedDevice';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useDebounce } from '../hooks/useDebounce';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Send } from 'lucide-react';
 
 const PAGE_SIZE = 50;
 
@@ -14,9 +15,10 @@ export default function Channels() {
   const [selectedGroup, setSelectedGroup] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [page, setPage] = useState<number>(1);
-  const [selectedDeviceForPlay, setSelectedDeviceForPlay] = useState<string>('');
-  const PERSIST_KEY = 'mattone:selectedDeviceId';
   const [activeChannelForPlay, setActiveChannelForPlay] = useState<Channel | null>(null);
+  const [modalDeviceId, setModalDeviceId] = useState<string>('');
+
+  const { selectedDeviceId, setSelectedDeviceId } = useSelectedDevice();
 
   const debouncedSearch = useDebounce(searchQuery, 500);
 
@@ -30,54 +32,33 @@ export default function Channels() {
   const { data: devices = [] } = useDevices();
   const playDevice = usePlayDevice();
 
-  // Load persisted device selection
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = window.localStorage.getItem(PERSIST_KEY);
-    if (stored) {
-      setSelectedDeviceForPlay(stored);
-    }
-  }, []);
-
-  // Ensure persisted selection still exists; if removed, clear it
-  useEffect(() => {
-    if (!selectedDeviceForPlay) return;
-    const exists = devices.some((d) => d.id === selectedDeviceForPlay);
-    if (!exists) {
-      setSelectedDeviceForPlay('');
-      if (typeof window !== 'undefined') {
-        window.localStorage.removeItem(PERSIST_KEY);
-      }
-    }
-  }, [devices, selectedDeviceForPlay]);
-
   const channels = data?.data || [];
   const total = data?.total || 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
+  const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
+  const selectedDeviceLabel = selectedDevice?.nickname || selectedDevice?.deviceCode || 'selected TV';
+
+  // Quick-send: send channel to currently selected device without a modal
+  const handleQuickSend = (channel: Channel) => {
+    if (!selectedDeviceId) return;
+    playDevice.mutate({ id: selectedDeviceId, channel });
+  };
+
+  // Full play modal (when no device is pre-selected or user wants to pick)
   const handlePlayClick = (channel: Channel) => {
     setActiveChannelForPlay(channel);
-    // When opening, keep last used device if still present
-    if (selectedDeviceForPlay) return;
-    // otherwise, attempt to load persisted value again (covers devices loaded after open)
-    if (typeof window !== 'undefined') {
-      const stored = window.localStorage.getItem(PERSIST_KEY);
-      if (stored && devices.some((d) => d.id === stored)) {
-        setSelectedDeviceForPlay(stored);
-      }
-    }
+    setModalDeviceId(selectedDeviceId);
   };
 
   const handleConfirmPlay = () => {
-    if (activeChannelForPlay && selectedDeviceForPlay) {
+    if (activeChannelForPlay && modalDeviceId) {
       playDevice.mutate(
-        { id: selectedDeviceForPlay, channel: activeChannelForPlay },
+        { id: modalDeviceId, channel: activeChannelForPlay },
         {
           onSuccess: () => {
+            setSelectedDeviceId(modalDeviceId);
             setActiveChannelForPlay(null);
-            if (typeof window !== 'undefined') {
-              window.localStorage.setItem(PERSIST_KEY, selectedDeviceForPlay);
-            }
           }
         }
       );
@@ -134,7 +115,7 @@ export default function Channels() {
       <div className='bg-white dark:bg-sand/10 border border-sand/10 dark:border-sand/20 rounded-xl shadow-sm overflow-hidden'>
         <ul className='divide-y divide-sand/10 dark:divide-sand/20'>
           {channels.map((channel) => (
-            <li key={channel.id} className='px-4 py-4 flex items-center sm:px-6 hover:bg-sand/5 dark:hover:bg-sand/10 transition-colors'>
+              <li key={channel.id} className='px-4 py-4 flex items-center sm:px-6 hover:bg-sand/5 dark:hover:bg-sand/10 transition-colors'>
               <div className='flex-shrink-0 h-10 w-10 flex items-center justify-center bg-sand/10 dark:bg-sand/20 rounded-full overflow-hidden'>
                 {channel.tvgLogo ? (
                   <img src={channel.tvgLogo} alt='' className='h-full w-full object-cover' />
@@ -150,7 +131,18 @@ export default function Channels() {
                   <p className='flex items-center text-sm text-text-secondary dark:text-text-secondary'>{channel.groupTitle || 'Uncategorized'}</p>
                 </div>
               </div>
-              <div className='ml-4 flex-shrink-0'>
+              <div className='ml-4 flex-shrink-0 flex items-center gap-2'>
+                {selectedDeviceId && (
+                  <button
+                    onClick={() => handleQuickSend(channel)}
+                    disabled={playDevice.isPending}
+                    title={`Send to ${selectedDeviceLabel}`}
+                    className='inline-flex items-center gap-1 px-2.5 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-sea/80 dark:bg-accent-blue/80 hover:bg-sea dark:hover:bg-accent-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sea dark:focus:ring-accent-blue transition-all duration-400 disabled:opacity-50 disabled:cursor-not-allowed'
+                  >
+                    <Send size={12} />
+                    Send
+                  </button>
+                )}
                 <button
                   onClick={() => handlePlayClick(channel)}
                   className='inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-sea dark:bg-accent-blue hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sea dark:focus:ring-accent-blue transition-all duration-400'
@@ -252,14 +244,14 @@ export default function Channels() {
           <div className='mt-4'>
             <select
               className='block w-full pl-3 pr-10 py-2 text-base border-sand/30 dark:border-sand/50 bg-white dark:bg-sand/10 text-text-primary dark:text-text-primary focus:outline-none focus:ring-2 focus:ring-sea dark:focus:ring-accent-blue focus:border-sea dark:focus:border-accent-blue sm:text-sm rounded-lg border'
-              value={selectedDeviceForPlay}
-              onChange={(e) => setSelectedDeviceForPlay(e.target.value)}
+              value={modalDeviceId}
+              onChange={(e) => setModalDeviceId(e.target.value)}
               onClick={(e) => e.stopPropagation()}
             >
               <option value=''>Select a device</option>
               {devices.map((d) => (
                 <option key={d.id} value={d.id}>
-                  {d.deviceCode}
+                  {d.nickname || d.deviceCode}
                 </option>
               ))}
             </select>
@@ -276,7 +268,7 @@ export default function Channels() {
           <button
             type='button'
             onClick={handleConfirmPlay}
-            disabled={!selectedDeviceForPlay || playDevice.isPending}
+            disabled={!modalDeviceId || playDevice.isPending}
             className='w-full sm:w-auto inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-sea dark:bg-accent-blue text-base font-medium text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sea dark:focus:ring-accent-blue sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-400'
           >
             {playDevice.isPending ? 'Starting...' : 'Confirm Play'}

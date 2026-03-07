@@ -1,8 +1,10 @@
 import { Link } from 'react-router';
-import { Search, Moon, Sun, Monitor, LogIn, LogOut } from 'lucide-react';
+import { Search, Moon, Sun, Monitor, LogIn, LogOut, Tv } from 'lucide-react';
 import { useState } from 'react';
 import { useAuthStatus, useLogout } from '../../hooks/useAuth';
 import { useTheme } from '../../hooks/useTheme';
+import { useSelectedDevice } from '../../hooks/useSelectedDevice';
+import { useDevices } from '../../services/queries/useDevices';
 import { signInWithRedirect } from 'aws-amplify/auth';
 
 export default function Header() {
@@ -11,6 +13,10 @@ export default function Header() {
   const { theme, toggleTheme } = useTheme();
   const { isAuthenticated } = useAuthStatus();
   const { logout } = useLogout();
+  const { selectedDeviceId, setSelectedDeviceId } = useSelectedDevice();
+  const { data: devices = [] } = useDevices();
+
+  const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
 
   return (
     <header className='fixed w-full top-0 z-50 bg-white/90 dark:bg-dark-sand/95 backdrop-blur-2xl shadow-[0_1px_3px_0_rgb(0,0,0,0.02)] dark:shadow-[0_1px_3px_0_rgb(0,0,0,0.3)] font-[family-name:var(--font-header)]'>
@@ -35,6 +41,9 @@ export default function Header() {
               <Link to='/channels' className='text-base hover:text-sea dark:hover:text-accent-blue transition-colors duration-400 tracking-refined font-medium'>
                 Channels
               </Link>
+              <Link to='/groups' className='text-base hover:text-sea dark:hover:text-accent-blue transition-colors duration-400 tracking-refined font-medium'>
+                Groups
+              </Link>
               <Link to='/import' className='text-base hover:text-sea dark:hover:text-accent-blue transition-colors duration-400 tracking-refined font-medium'>
                 Import
               </Link>
@@ -43,6 +52,26 @@ export default function Header() {
 
           {/* Actions */}
           <div className='hidden md:flex items-center gap-3'>
+            {/* Active TV selector */}
+            {isAuthenticated && devices.length > 0 && (
+              <div className='flex items-center gap-1.5 px-3 py-1.5 border border-sand/20 dark:border-sand/70 bg-white/35 dark:bg-sand/25 backdrop-blur-md shadow-sm rounded-full'>
+                <Tv size={15} className='text-sea dark:text-accent-blue flex-shrink-0' strokeWidth={1.5} />
+                <select
+                  value={selectedDeviceId}
+                  onChange={(e) => setSelectedDeviceId(e.target.value)}
+                  className='bg-white dark:bg-dark-sand text-sm text-text-primary dark:text-text-primary focus:outline-none cursor-pointer max-w-[140px]'
+                  aria-label='Active TV'
+                >
+                  <option value=''>Select TV</option>
+                  {devices.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.nickname || d.deviceCode}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {isAuthenticated && (
               <button
                 onClick={() => setSearchOpen(!searchOpen)}
@@ -107,6 +136,25 @@ export default function Header() {
         {mobileMenuOpen && (
           <div className='md:hidden bg-light-sand/95 dark:bg-sand/95 backdrop-blur-md border-t border-sand/10'>
             <div className='py-6 space-y-4'>
+              {/* Mobile TV selector */}
+              {isAuthenticated && devices.length > 0 && (
+                <div className='px-4 flex items-center gap-2'>
+                  <Tv size={16} className='text-sea dark:text-accent-blue flex-shrink-0' strokeWidth={1.5} />
+                  <select
+                    value={selectedDeviceId}
+                    onChange={(e) => setSelectedDeviceId(e.target.value)}
+                    className='flex-1 bg-white dark:bg-sand/10 border border-sand/30 dark:border-sand/50 rounded-lg px-2 py-1.5 text-sm text-text-primary dark:text-text-primary focus:outline-none'
+                    aria-label='Active TV'
+                  >
+                    <option value=''>Select TV</option>
+                    {devices.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.nickname || d.deviceCode}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <Link
                 to='/'
                 className='block px-4 py-2 text-base hover:text-sea dark:hover:text-accent-blue transition-colors duration-400'
@@ -127,6 +175,13 @@ export default function Header() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Channels
+              </Link>
+              <Link
+                to='/groups'
+                className='block px-4 py-2 text-base hover:text-sea dark:hover:text-accent-blue transition-colors duration-400'
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Groups
               </Link>
               <Link
                 to='/import'
