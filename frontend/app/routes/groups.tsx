@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Channel, ChannelGroup } from '../types';
 import { useChannelGroups, useCreateChannelGroup, useDeleteChannelGroup, useAddChannelToGroup, useRemoveChannelFromGroup } from '../services/queries/useChannelGroups';
-import { useChannels } from '../services/queries/useChannels';
+import { useChannels, useCreateChannel } from '../services/queries/useChannels';
 import Modal from '../components/common/Modal';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { Plus, Trash2, PlusCircle, MinusCircle, ChevronDown, ChevronRight } from 'lucide-react';
@@ -12,6 +12,11 @@ export default function Groups() {
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null);
   const [addChannelGroupId, setAddChannelGroupId] = useState<string | null>(null);
   const [channelSearch, setChannelSearch] = useState('');
+  const [customChannelName, setCustomChannelName] = useState('');
+  const [customChannelStreamUrl, setCustomChannelStreamUrl] = useState('');
+  const [customChannelLogo, setCustomChannelLogo] = useState('');
+  const [customChannelGroupTitle, setCustomChannelGroupTitle] = useState('');
+  const [customChannelError, setCustomChannelError] = useState('');
 
   const debouncedSearch = useDebounce(channelSearch, 400);
 
@@ -20,6 +25,7 @@ export default function Groups() {
   const deleteGroup = useDeleteChannelGroup();
   const addChannel = useAddChannelToGroup();
   const removeChannel = useRemoveChannelFromGroup();
+  const createChannel = useCreateChannel();
 
   const { data: channelsData } = useChannels(undefined, debouncedSearch || undefined, 1, 50);
   const allChannels = channelsData?.data || [];
@@ -45,6 +51,63 @@ export default function Groups() {
 
   const handleRemoveChannel = (groupId: string, channel: Channel) => {
     removeChannel.mutate({ groupId, channelId: channel.id });
+  };
+
+  const closeAddChannelModal = () => {
+    setAddChannelGroupId(null);
+    setChannelSearch('');
+    setCustomChannelName('');
+    setCustomChannelStreamUrl('');
+    setCustomChannelLogo('');
+    setCustomChannelGroupTitle('');
+    setCustomChannelError('');
+  };
+
+  const getApiErrorMessage = (error: any): string => {
+    const apiMessage = error?.response?.data?.message;
+    if (Array.isArray(apiMessage)) {
+      return apiMessage.join(', ');
+    }
+    return apiMessage || error?.message || 'Request failed';
+  };
+
+  const handleCreateCustomChannel = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!addChannelGroupId) return;
+    if (!customChannelName.trim() || !customChannelStreamUrl.trim()) return;
+
+    setCustomChannelError('');
+
+    createChannel.mutate(
+      {
+        tvgName: customChannelName.trim(),
+        streamUrl: customChannelStreamUrl.trim(),
+        tvgLogo: customChannelLogo.trim() || undefined,
+        groupTitle: customChannelGroupTitle.trim() || undefined
+      },
+      {
+        onSuccess: (channel) => {
+          addChannel.mutate(
+            { groupId: addChannelGroupId, channelId: channel.id },
+            {
+              onSuccess: () => {
+                setCustomChannelName('');
+                setCustomChannelStreamUrl('');
+                setCustomChannelLogo('');
+                setCustomChannelGroupTitle('');
+                setCustomChannelError('');
+              },
+              onError: (error) => {
+                setCustomChannelError(getApiErrorMessage(error));
+              }
+            }
+          );
+        },
+        onError: (error) => {
+          setCustomChannelError(getApiErrorMessage(error));
+        }
+      }
+    );
   };
 
   // For the add-channel modal, filter out channels already in the group
@@ -117,7 +180,15 @@ export default function Groups() {
                     </div>
                     <div className='flex items-center gap-2 ml-4' onClick={(e) => e.stopPropagation()}>
                       <button
-                        onClick={() => { setAddChannelGroupId(group.id); setChannelSearch(''); }}
+                        onClick={() => {
+                          setAddChannelGroupId(group.id);
+                          setChannelSearch('');
+                          setCustomChannelName('');
+                          setCustomChannelStreamUrl('');
+                          setCustomChannelLogo('');
+                          setCustomChannelGroupTitle('');
+                          setCustomChannelError('');
+                        }}
                         title='Add channel to group'
                         className='inline-flex items-center gap-1 px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-sea dark:bg-accent-blue hover:opacity-90 transition-all duration-400'
                       >
@@ -177,9 +248,60 @@ export default function Groups() {
       {/* Add channel modal */}
       <Modal
         isOpen={!!addChannelGroupId}
-        onClose={() => setAddChannelGroupId(null)}
+        onClose={closeAddChannelModal}
         title={`Add Channel to "${activeGroup?.name || ''}"`}
       >
+        <form onSubmit={handleCreateCustomChannel} className='mt-1 p-3 rounded-lg border border-sand/20 dark:border-sand/30 bg-sand/5 dark:bg-sand/10 space-y-2.5'>
+          <h4 className='text-sm font-medium text-text-primary dark:text-text-primary'>Create custom channel item</h4>
+          <input
+            type='text'
+            placeholder='Channel name *'
+            value={customChannelName}
+            onChange={(e) => setCustomChannelName(e.target.value)}
+            className='block w-full border-sand/30 dark:border-sand/50 bg-white dark:bg-sand/10 text-text-primary dark:text-text-primary rounded-lg shadow-sm focus:ring-2 focus:ring-sea dark:focus:ring-accent-blue focus:border-sea dark:focus:border-accent-blue sm:text-sm p-2 border'
+          />
+          <input
+            type='url'
+            placeholder='Stream URL *'
+            value={customChannelStreamUrl}
+            onChange={(e) => setCustomChannelStreamUrl(e.target.value)}
+            className='block w-full border-sand/30 dark:border-sand/50 bg-white dark:bg-sand/10 text-text-primary dark:text-text-primary rounded-lg shadow-sm focus:ring-2 focus:ring-sea dark:focus:ring-accent-blue focus:border-sea dark:focus:border-accent-blue sm:text-sm p-2 border'
+          />
+          <input
+            type='text'
+            placeholder='Group title (optional)'
+            value={customChannelGroupTitle}
+            onChange={(e) => setCustomChannelGroupTitle(e.target.value)}
+            className='block w-full border-sand/30 dark:border-sand/50 bg-white dark:bg-sand/10 text-text-primary dark:text-text-primary rounded-lg shadow-sm focus:ring-2 focus:ring-sea dark:focus:ring-accent-blue focus:border-sea dark:focus:border-accent-blue sm:text-sm p-2 border'
+          />
+          <input
+            type='url'
+            placeholder='Logo URL (optional)'
+            value={customChannelLogo}
+            onChange={(e) => setCustomChannelLogo(e.target.value)}
+            className='block w-full border-sand/30 dark:border-sand/50 bg-white dark:bg-sand/10 text-text-primary dark:text-text-primary rounded-lg shadow-sm focus:ring-2 focus:ring-sea dark:focus:ring-accent-blue focus:border-sea dark:focus:border-accent-blue sm:text-sm p-2 border'
+          />
+          {customChannelError && (
+            <p className='text-xs text-terracotta'>{customChannelError}</p>
+          )}
+          <div className='flex justify-end'>
+            <button
+              type='submit'
+              disabled={!customChannelName.trim() || !customChannelStreamUrl.trim() || createChannel.isPending || addChannel.isPending}
+              className='inline-flex items-center gap-1.5 px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-sea dark:bg-accent-blue hover:opacity-90 transition-all duration-400 disabled:opacity-50 disabled:cursor-not-allowed'
+            >
+              <Plus size={14} />
+              {createChannel.isPending || addChannel.isPending ? 'Creating...' : 'Create & Add'}
+            </button>
+          </div>
+        </form>
+
+        <div className='mt-4 flex items-center gap-3'>
+          <div className='h-px flex-1 bg-sand/20 dark:bg-sand/30' />
+          <p className='text-xs text-text-secondary dark:text-text-secondary'>or add an existing channel</p>
+          <div className='h-px flex-1 bg-sand/20 dark:bg-sand/30' />
+        </div>
+
         <div className='mt-2'>
           <input
             type='text'
@@ -221,7 +343,7 @@ export default function Groups() {
         </div>
         <div className='mt-4 flex justify-end'>
           <button
-            onClick={() => setAddChannelGroupId(null)}
+            onClick={closeAddChannelModal}
             className='px-4 py-2 border border-sand/30 dark:border-sand/50 text-sm font-medium rounded-lg text-text-primary dark:text-text-primary hover:bg-sand/10 transition-all duration-400'
           >
             Done
