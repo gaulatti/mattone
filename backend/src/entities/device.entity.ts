@@ -30,6 +30,9 @@ export class Device {
   @Column({ name: 'active_channel_id', type: 'uuid', nullable: true })
   activeChannelId: string | null;
 
+  @Column({ name: 'nickname', nullable: true })
+  nickname: string | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
