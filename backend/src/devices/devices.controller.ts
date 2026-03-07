@@ -22,7 +22,6 @@ export class DevicesController {
   constructor(private readonly devicesService: DevicesService) {}
 
   @Get('whoami')
-  @HttpCode(204)
   async whoAmI(@Headers('X-Device-ID') deviceId: string) {
     return this.devicesService.whoAmI(deviceId);
   }

@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Channel } from '../entities/channel.entity';
 import { User } from '../entities/user.entity';
 import { ChannelResponseDto } from './dto/channel-response.dto';
+import { CreateChannelDto } from './dto/create-channel.dto';
 
 @Injectable()
 export class ChannelsService {
@@ -11,6 +12,20 @@ export class ChannelsService {
     @InjectRepository(Channel)
     private channelRepository: Repository<Channel>,
   ) {}
+
+  async create(user: User, dto: CreateChannelDto): Promise<ChannelResponseDto> {
+    const channel = this.channelRepository.create({
+      userId: user.id,
+      tvgName: dto.tvgName.trim(),
+      tvgLogo: dto.tvgLogo?.trim() || undefined,
+      groupTitle: dto.groupTitle?.trim() || undefined,
+      streamUrl: dto.streamUrl.trim(),
+      sourceUrl: 'manual',
+    });
+
+    const saved = await this.channelRepository.save(channel);
+    return new ChannelResponseDto(saved);
+  }
 
   async findAll(
     user: User,

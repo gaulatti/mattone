@@ -66,13 +66,14 @@ export class DevicesService implements OnModuleInit {
     }
   }
 
-  async whoAmI(deviceCode: string): Promise<void> {
+  async whoAmI(deviceCode: string): Promise<Device> {
     const device = await this.deviceRepository.findOne({
       where: { deviceCode },
     });
     if (!device) {
       throw new NotFoundException();
     }
+    return device;
   }
 
   async register(
