@@ -39,7 +39,7 @@ export default function Devices() {
 
   const handleEditSave = (device: Device) => {
     updateDevice.mutate(
-      { id: device.id, nickname: editingNickname },
+      { id: device.id, nickname: editingNickname.trim() },
       {
         onSuccess: () => {
           setEditingId(null);
