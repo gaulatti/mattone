@@ -59,7 +59,7 @@ export default function Header() {
                 <select
                   value={selectedDeviceId}
                   onChange={(e) => setSelectedDeviceId(e.target.value)}
-                  className='bg-transparent text-sm text-text-primary dark:text-text-primary focus:outline-none cursor-pointer max-w-[140px]'
+                  className='bg-white dark:bg-dark-sand text-sm text-text-primary dark:text-text-primary focus:outline-none cursor-pointer max-w-[140px]'
                   aria-label='Active TV'
                 >
                   <option value=''>Select TV</option>

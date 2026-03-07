@@ -36,6 +36,9 @@ export default function Channels() {
   const total = data?.total || 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
+  const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
+  const selectedDeviceLabel = selectedDevice?.nickname || selectedDevice?.deviceCode || 'selected TV';
+
   // Quick-send: send channel to currently selected device without a modal
   const handleQuickSend = (channel: Channel) => {
     if (!selectedDeviceId) return;
@@ -133,7 +136,7 @@ export default function Channels() {
                   <button
                     onClick={() => handleQuickSend(channel)}
                     disabled={playDevice.isPending}
-                    title={`Send to ${devices.find((d) => d.id === selectedDeviceId)?.nickname || devices.find((d) => d.id === selectedDeviceId)?.deviceCode || 'selected TV'}`}
+                    title={`Send to ${selectedDeviceLabel}`}
                     className='inline-flex items-center gap-1 px-2.5 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-sea/80 dark:bg-accent-blue/80 hover:bg-sea dark:hover:bg-accent-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sea dark:focus:ring-accent-blue transition-all duration-400 disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     <Send size={12} />

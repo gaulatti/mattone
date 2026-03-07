@@ -118,7 +118,7 @@ export class DevicesService implements OnModuleInit {
     }
 
     if (updateDeviceDto.nickname !== undefined) {
-      device.nickname = updateDeviceDto.nickname || null;
+      device.nickname = updateDeviceDto.nickname?.trim() || null;
     }
 
     return this.deviceRepository.save(device);
