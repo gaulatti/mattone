@@ -1,11 +1,25 @@
-import { Controller, Get, Query, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Query,
+  UseGuards,
+  Request,
+  Post,
+  Body,
+} from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ChannelsService } from './channels.service';
+import { CreateChannelDto } from './dto/create-channel.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('channels')
 export class ChannelsController {
   constructor(private readonly channelsService: ChannelsService) {}
+
+  @Post()
+  async create(@Request() req, @Body() dto: CreateChannelDto) {
+    return this.channelsService.create(req.user, dto);
+  }
 
   @Get()
   async findAll(

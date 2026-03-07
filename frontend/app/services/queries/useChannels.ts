@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import type { Channel } from '../../types';
 
@@ -23,6 +23,28 @@ export const useChannelGroups = () => {
     queryFn: async () => {
       const { data } = await api.get<string[]>('/channels/groups');
       return data;
+    }
+  });
+};
+
+export interface CreateChannelInput {
+  tvgName: string;
+  streamUrl: string;
+  tvgLogo?: string;
+  groupTitle?: string;
+}
+
+export const useCreateChannel = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (payload: CreateChannelInput) => {
+      const { data } = await api.post<Channel>('/channels', payload);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      queryClient.invalidateQueries({ queryKey: ['channelGroups'] });
     }
   });
 };
