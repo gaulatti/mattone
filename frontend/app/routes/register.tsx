@@ -5,6 +5,8 @@ import { useAuthStatus } from '../hooks/useAuth';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import { Tv, CheckCircle, AlertCircle } from 'lucide-react';
 
+const REDIRECT_DELAY_MS = 2000;
+
 export default function Register() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -28,7 +30,7 @@ export default function Register() {
     addDevice.mutate(deviceCode, {
       onSuccess: () => {
         setRegistered(true);
-        setTimeout(() => navigate('/devices'), 2000);
+        setTimeout(() => navigate('/devices'), REDIRECT_DELAY_MS);
       },
       onError: (err: any) => {
         const msg = err?.response?.data?.message || 'Failed to register device. Please try again.';
