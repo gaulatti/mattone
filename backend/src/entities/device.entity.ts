@@ -30,7 +30,7 @@ export class Device {
   @Column({ name: 'active_channel_id', type: 'uuid', nullable: true })
   activeChannelId: string | null;
 
-  @Column({ name: 'nickname', nullable: true })
+  @Column({ name: 'nickname', nullable: true, type: 'varchar' })
   nickname: string | null;
 
   @CreateDateColumn({ name: 'created_at' })
