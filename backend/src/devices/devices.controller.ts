@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Body,
   Param,
@@ -14,6 +15,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { PlayCommandDto } from './dto/play-command.dto';
+import { UpdateDeviceDto } from './dto/update-device.dto';
 
 @Controller('devices')
 export class DevicesController {
@@ -35,6 +37,16 @@ export class DevicesController {
   @Get()
   async findAll(@Request() req) {
     return this.devicesService.findAll(req.user);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch(':id')
+  async update(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() updateDeviceDto: UpdateDeviceDto,
+  ) {
+    return this.devicesService.update(id, req.user, updateDeviceDto);
   }
 
   @UseGuards(AuthGuard('jwt'))

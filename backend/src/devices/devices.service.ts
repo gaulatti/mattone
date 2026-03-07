@@ -1,8 +1,6 @@
 import {
   Injectable,
   NotFoundException,
-  BadRequestException,
-  ServiceUnavailableException,
   ConflictException,
   OnModuleInit,
   Logger,
@@ -15,6 +13,7 @@ import { User } from '../entities/user.entity';
 import { SseService } from '../sse/sse.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { PlayCommandDto } from './dto/play-command.dto';
+import { UpdateDeviceDto } from './dto/update-device.dto';
 
 @Injectable()
 export class DevicesService implements OnModuleInit {
@@ -104,6 +103,25 @@ export class DevicesService implements OnModuleInit {
 
   async findAll(user: User): Promise<Device[]> {
     return this.deviceRepository.find({ where: { userId: user.id } }); // Assuming userId usage
+  }
+
+  async update(
+    id: string,
+    user: User,
+    updateDeviceDto: UpdateDeviceDto,
+  ): Promise<Device> {
+    const device = await this.deviceRepository.findOne({
+      where: { id, userId: user.id },
+    });
+    if (!device) {
+      throw new NotFoundException('Device not found');
+    }
+
+    if (updateDeviceDto.nickname !== undefined) {
+      device.nickname = updateDeviceDto.nickname?.trim() || null;
+    }
+
+    return this.deviceRepository.save(device);
   }
 
   async remove(id: string, user: User): Promise<void> {

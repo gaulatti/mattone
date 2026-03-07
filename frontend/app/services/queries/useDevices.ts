@@ -2,10 +2,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import type { Device, Channel } from '../../types';
 
-interface PlayCommand {
-  channelUrl: string;
-}
-
 export const useDevices = () => {
   return useQuery({
     queryKey: ['devices'],
@@ -21,6 +17,19 @@ export const useAddDevice = () => {
   return useMutation({
     mutationFn: async (deviceCode: string) => {
       const { data } = await api.post<Device>('/devices', { deviceCode });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+    }
+  });
+};
+
+export const useUpdateDevice = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, nickname }: { id: string; nickname: string }) => {
+      const { data } = await api.patch<Device>(`/devices/${id}`, { nickname });
       return data;
     },
     onSuccess: () => {
@@ -56,3 +65,4 @@ export const useStopDevice = () => {
     }
   });
 };
+
