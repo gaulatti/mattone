@@ -1,7 +1,7 @@
 import type { Route } from './+types/login';
+import { LoadingSpinner } from '@gaulatti/bleecker';
 import { useAuthStatus } from '../hooks/useAuth';
 import { Navigate } from 'react-router';
-import LoadingSpinner from '../components/common/LoadingSpinner';
 import LoginForm from '../components/forms/LoginForm';
 
 export function meta({}: Route.MetaArgs) {

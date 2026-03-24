@@ -1,9 +1,8 @@
 import { useState } from 'react';
+import { LoadingSpinner, Modal } from '@gaulatti/bleecker';
 import type { Channel, ChannelGroup } from '../types';
 import { useChannelGroups, useCreateChannelGroup, useDeleteChannelGroup, useAddChannelToGroup, useRemoveChannelFromGroup } from '../services/queries/useChannelGroups';
 import { useChannels, useCreateChannel } from '../services/queries/useChannels';
-import Modal from '../components/common/Modal';
-import LoadingSpinner from '../components/common/LoadingSpinner';
 import { Plus, Trash2, PlusCircle, MinusCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
 

@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
+import { LoadingSpinner, Modal, Select } from '@gaulatti/bleecker';
 import type { Channel } from '../types';
-import Select from '../components/common/Select';
-import Modal from '../components/common/Modal';
 import { useChannels, useChannelGroups } from '../services/queries/useChannels';
 import { useDevices, usePlayDevice } from '../services/queries/useDevices';
 import { useSelectedDevice } from '../hooks/useSelectedDevice';
-import LoadingSpinner from '../components/common/LoadingSpinner';
 import { useDebounce } from '../hooks/useDebounce';
 import { ChevronLeft, ChevronRight, Send } from 'lucide-react';
 
