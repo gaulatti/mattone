@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
+import { LoadingSpinner } from '@gaulatti/bleecker';
 import { useSearchParams, useNavigate } from 'react-router';
 import { useAddDevice } from '../services/queries/useDevices';
 import { useAuthStatus } from '../hooks/useAuth';
-import LoadingSpinner from '../components/common/LoadingSpinner';
 import { Tv, CheckCircle, AlertCircle } from 'lucide-react';
 
 const REDIRECT_DELAY_MS = 2000;

@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import Select from '../components/common/Select';
+import { LoadingSpinner, Select } from '@gaulatti/bleecker';
 import { useDevices, usePlayDevice, useStopDevice } from '../services/queries/useDevices';
 import { useChannels } from '../services/queries/useChannels';
-import LoadingSpinner from '../components/common/LoadingSpinner';
 
 export default function Home() {
   const [selectedDevice, setSelectedDevice] = useState<string>('');

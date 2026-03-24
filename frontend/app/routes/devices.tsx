@@ -1,7 +1,7 @@
 import { useState } from 'react';
+import { LoadingSpinner } from '@gaulatti/bleecker';
 import type { Device } from '../types';
 import { useDevices, useAddDevice, useDeleteDevice, useUpdateDevice, useStopDevice } from '../services/queries/useDevices';
-import LoadingSpinner from '../components/common/LoadingSpinner';
 import { Pencil, Check, X, Square } from 'lucide-react';
 
 export default function Devices() {

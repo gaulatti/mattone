@@ -1,10 +1,10 @@
 import type { Route } from './+types/logout';
+import { LoadingSpinner } from '@gaulatti/bleecker';
 
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router';
 
-import LoadingSpinner from '../components/common/LoadingSpinner';
 import { logout as logoutDispatcher, setAuthLoaded } from '../state/dispatchers/auth';
 
 export function meta({}: Route.MetaArgs) {

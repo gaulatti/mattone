@@ -1,40 +1,198 @@
-import { isRouteErrorResponse, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
+import {
+  AppShell,
+  BleeckerThemeScript,
+  Button,
+  Footer as BleeckerFooter,
+  Header as BleeckerHeader,
+  HeaderSelect,
+  ThemeProvider,
+  ThemeToggle,
+  type NavItem,
+  type RenderLinkProps
+} from '@gaulatti/bleecker';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
-import 'aws-amplify/auth/enable-oauth-listener';
+import { LogIn, LogOut, Tv } from 'lucide-react';
+import { useState, type ReactNode } from 'react';
 import { Provider } from 'react-redux';
+import { isRouteErrorResponse, Link, Links, Meta, Outlet, Scripts, ScrollRestoration } from 'react-router';
+import { signInWithRedirect } from 'aws-amplify/auth';
+import 'aws-amplify/auth/enable-oauth-listener';
 
 import type { Route } from './+types/root';
 import './app.css';
-import './services/auth'; // Initialize Amplify
-import Header from './components/layout/Header';
-import Footer from './components/layout/Footer';
-import { getStore } from './state';
+import './services/auth';
 import AuthListener from './components/common/AuthListener';
+import { useAuthStatus, useLogout } from './hooks/useAuth';
+import { useSelectedDevice } from './hooks/useSelectedDevice';
+import { useDevices } from './services/queries/useDevices';
+import { getStore } from './state';
 
-export const links: Route.LinksFunction = () => [
-  { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
-  {
-    rel: 'preconnect',
-    href: 'https://fonts.gstatic.com',
-    crossOrigin: 'anonymous'
-  },
-  {
-    rel: 'stylesheet',
-    href: 'https://fonts.googleapis.com/css2?family=Encode+Sans:wght@700&family=Libre+Franklin:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap'
+const GITHUB_REPO_URL = 'https://github.com/gaulatti/mattone';
+
+export const links: Route.LinksFunction = () => [{ rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }];
+
+function renderAppLink({ children, className, item, onClick }: RenderLinkProps<NavItem>) {
+  if (item.external) {
+    return (
+      <a href={item.href} className={className} onClick={onClick} target='_blank' rel='noopener noreferrer'>
+        {children}
+      </a>
+    );
   }
-];
 
-export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang='en' className='bg-white dark:bg-deep-sea text-text-primary'>
+    <Link to={item.href} className={className} onClick={onClick}>
+      {children}
+    </Link>
+  );
+}
+
+function HeaderActions({ mobile = false }: { mobile?: boolean }) {
+  const { isAuthenticated } = useAuthStatus();
+  const { logout } = useLogout();
+  const { selectedDeviceId, setSelectedDeviceId } = useSelectedDevice();
+  const { data: devices = [] } = useDevices();
+
+  return (
+    <div className={mobile ? 'flex w-full flex-wrap items-center gap-3' : 'flex items-center gap-3'}>
+      {isAuthenticated && devices.length > 0 ? (
+        <HeaderSelect
+          aria-label='Active TV'
+          icon={<Tv size={15} className='text-sea dark:text-accent-blue' strokeWidth={1.5} />}
+          options={devices.map((device) => ({
+            label: device.nickname || device.deviceCode,
+            value: device.id
+          }))}
+          placeholder='Select TV'
+          value={selectedDeviceId}
+          wrapperClassName={mobile ? 'w-full' : undefined}
+          onChange={setSelectedDeviceId}
+        />
+      ) : null}
+
+      <ThemeToggle />
+
+      {isAuthenticated ? (
+        <Button onClick={logout} variant='destructive' size='sm' className={mobile ? 'w-full justify-center' : ''}>
+          <LogOut size={16} strokeWidth={1.5} />
+          <span>Logout</span>
+        </Button>
+      ) : (
+        <Button
+          onClick={() => {
+            signInWithRedirect({ provider: 'Google' }).catch((error) => {
+              console.error('Error signing in', error);
+            });
+          }}
+          variant='primary'
+          size='sm'
+          className={mobile ? 'w-full justify-center' : ''}
+        >
+          <LogIn size={16} strokeWidth={1.5} />
+          <span>Login</span>
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function AppContent() {
+  const { isAuthenticated } = useAuthStatus();
+
+  const navigation: NavItem[] = isAuthenticated
+    ? [
+        { href: '/', label: 'Dashboard' },
+        { href: '/devices', label: 'Devices' },
+        { href: '/channels', label: 'Channels' },
+        { href: '/groups', label: 'Groups' },
+        { href: '/import', label: 'Import' }
+      ]
+    : [];
+
+  const footerSections: Array<{ title: string; items: NavItem[] }> = [
+    {
+      title: 'Navigation',
+      items: [
+        { href: '/', label: 'Home' },
+        { href: '/devices', label: 'Devices' },
+        { href: '/channels', label: 'Channels' },
+        { href: '/import', label: 'Import' }
+      ]
+    },
+    {
+      title: 'Resources',
+      items: [{ href: GITHUB_REPO_URL, label: 'GitHub', external: true }]
+    },
+    {
+      title: 'Legal',
+      items: [
+        { href: '/privacy', label: 'Privacy Policy' },
+        { href: '/terms', label: 'Terms of Service' }
+      ]
+    }
+  ];
+
+  return (
+    <AppShell
+      className='antialiased'
+      header={
+        <BleeckerHeader
+          brand={{
+            href: '/',
+            logoAlt: 'celesti',
+            logoSrc: '/logo.svg',
+            name: 'celesti'
+          }}
+          navigation={navigation}
+          actions={<HeaderActions />}
+          mobileActions={<HeaderActions mobile />}
+          renderLink={renderAppLink}
+        />
+      }
+      footer={
+        <BleeckerFooter
+          brand={{
+            href: '/',
+            logoAlt: 'celesti',
+            logoSrc: '/logo.svg',
+            name: 'celesti',
+            description: 'Stream management made simple.'
+          }}
+          sections={footerSections}
+          bottomLeft={
+            <>
+              © {new Date().getFullYear()}{' '}
+              <a href='https://gaulatti.com' target='_blank' rel='noopener noreferrer' className='font-semibold hover:underline underline-offset-4'>
+                gaulatti
+              </a>
+              . All rights reserved.
+            </>
+          }
+          bottomRight={
+            <a href={GITHUB_REPO_URL} target='_blank' rel='noopener noreferrer' className='hover:underline underline-offset-4'>
+              View source on GitHub
+            </a>
+          }
+          renderLink={renderAppLink}
+        />
+      }
+    >
+      <Outlet />
+    </AppShell>
+  );
+}
+
+export function Layout({ children }: { children: ReactNode }) {
+  return (
+    <html lang='en'>
       <head>
         <meta charSet='utf-8' />
         <meta name='viewport' content='width=device-width, initial-scale=1' />
         <Meta />
         <Links />
+        <BleeckerThemeScript storageKey='theme' />
       </head>
-      <body className='bg-white dark:bg-deep-sea text-text-primary'>
+      <body className='bg-light-sand text-text-primary'>
         {children}
         <ScrollRestoration />
         <Scripts />
@@ -49,7 +207,7 @@ export default function App() {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000, // 1 minute
+            staleTime: 60 * 1000,
             refetchOnWindowFocus: false
           }
         }
@@ -61,16 +219,10 @@ export default function App() {
   return (
     <Provider store={store}>
       <QueryClientProvider client={queryClient}>
-        <AuthListener />
-        <div className='min-h-screen flex flex-col'>
-          <Header />
-          <main className='flex-1 pt-20 flex flex-col min-h-0'>
-            <div className='flex-1 flex flex-col min-h-0'>
-              <Outlet />
-            </div>
-          </main>
-          <Footer />
-        </div>
+        <ThemeProvider defaultTheme='system' storageKey='theme'>
+          <AuthListener />
+          <AppContent />
+        </ThemeProvider>
       </QueryClientProvider>
     </Provider>
   );
@@ -93,27 +245,15 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
 
   return (
     <Provider store={store}>
-      <div className='min-h-screen flex flex-col'>
-        <Header />
-        <main className='flex-1 flex items-center justify-center bg-light-sand dark:bg-dark-sand pt-20'>
-          <div className='text-center px-4 max-w-2xl mx-auto'>
-            <h1 className='text-6xl font-bold text-text-primary dark:text-text-primary mb-4'>{message}</h1>
-            <p className='text-xl text-text-secondary dark:text-text-secondary mb-8'>{details}</p>
-            {stack && (
-              <pre className='w-full p-4 overflow-x-auto text-left bg-sand/20 dark:bg-sand/30 rounded-lg text-sm mb-8'>
-                <code>{stack}</code>
-              </pre>
-            )}
-            <a
-              href='/'
-              className='inline-flex items-center justify-center px-6 py-3 bg-sea dark:bg-accent-blue text-white rounded-lg hover:opacity-90 transition-opacity'
-            >
-              Go Home
-            </a>
-          </div>
-        </main>
-        <Footer />
-      </div>
+      <main className='container mx-auto p-4 pt-24'>
+        <h1>{message}</h1>
+        <p>{details}</p>
+        {stack ? (
+          <pre className='w-full overflow-x-auto p-4'>
+            <code>{stack}</code>
+          </pre>
+        ) : null}
+      </main>
     </Provider>
   );
 }
