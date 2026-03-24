@@ -9,7 +9,7 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
-    "@gaulatti/bleecker": "^0.1.6",
+    "@gaulatti/bleecker": "^0.1.7",
     "@hookform/resolvers": "^5.2.2",
     "@lexical/react": "^0.39.0",
     "@react-router/node": "7.12.0",
