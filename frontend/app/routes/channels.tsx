@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { LoadingSpinner, Modal, Select } from '@gaulatti/bleecker';
+import { Avatar, Button, Card, Empty, LoadingSpinner, Modal, Pagination, SectionHeader, Select } from '@gaulatti/bleecker';
 import type { Channel } from '../types';
 import { useChannels, useChannelGroups } from '../services/queries/useChannels';
 import { useDevices, usePlayDevice } from '../services/queries/useDevices';
 import { useSelectedDevice } from '../hooks/useSelectedDevice';
 import { useDebounce } from '../hooks/useDebounce';
-import { ChevronLeft, ChevronRight, Send } from 'lucide-react';
+import { Send } from 'lucide-react';
 
 const PAGE_SIZE = 50;
 
@@ -77,13 +77,10 @@ export default function Channels() {
 
   return (
     <div className='p-4 md:p-8 space-y-6'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-text-primary dark:text-text-primary mb-2'>Channels</h1>
-        <p className='text-text-secondary dark:text-text-secondary'>Browse and manage available channels ({total} total)</p>
-      </div>
+      <SectionHeader className='mb-8' title='Channels' description={`Browse and manage available channels (${total} total)`} />
 
       {/* Filters */}
-      <div className='bg-white dark:bg-sand/10 border border-sand/10 dark:border-sand/20 rounded-xl shadow-sm p-4 flex flex-col sm:flex-row gap-4'>
+      <Card className='flex flex-col gap-4 p-4 sm:flex-row'>
         <div className='flex-1'>
           <label htmlFor='search' className='block text-sm font-medium text-text-primary dark:text-text-primary mb-1'>
             Search
@@ -107,20 +104,14 @@ export default function Channels() {
             options={[{ label: 'All Groups', value: '' }, ...groups.map((group) => ({ label: group, value: group }))]}
           />
         </div>
-      </div>
+      </Card>
 
       {/* Channel List */}
-      <div className='bg-white dark:bg-sand/10 border border-sand/10 dark:border-sand/20 rounded-xl shadow-sm overflow-hidden'>
+      <Card className='overflow-hidden p-0'>
         <ul className='divide-y divide-sand/10 dark:divide-sand/20'>
           {channels.map((channel) => (
               <li key={channel.id} className='px-4 py-4 flex items-center sm:px-6 hover:bg-sand/5 dark:hover:bg-sand/10 transition-colors'>
-              <div className='flex-shrink-0 h-10 w-10 flex items-center justify-center bg-sand/10 dark:bg-sand/20 rounded-full overflow-hidden'>
-                {channel.tvgLogo ? (
-                  <img src={channel.tvgLogo} alt='' className='h-full w-full object-cover' />
-                ) : (
-                  <span className='text-xs font-semibold text-text-secondary dark:text-text-secondary'>N/A</span>
-                )}
-              </div>
+              <Avatar src={channel.tvgLogo} fallback={channel.tvgName} size='md' />
               <div className='ml-4 flex-1'>
                 <div className='flex items-center justify-between'>
                   <p className='text-sm font-medium text-sea dark:text-accent-blue truncate'>{channel.tvgName}</p>
@@ -131,31 +122,37 @@ export default function Channels() {
               </div>
               <div className='ml-4 flex-shrink-0 flex items-center gap-2'>
                 {selectedDeviceId && (
-                  <button
+                  <Button
+                    size='sm'
                     onClick={() => handleQuickSend(channel)}
                     disabled={playDevice.isPending}
                     title={`Send to ${selectedDeviceLabel}`}
-                    className='inline-flex items-center gap-1 px-2.5 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-sea/80 dark:bg-accent-blue/80 hover:bg-sea dark:hover:bg-accent-blue focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sea dark:focus:ring-accent-blue transition-all duration-400 disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='gap-1 rounded-lg bg-sea/80 py-1.5 text-xs hover:bg-sea dark:bg-accent-blue/80 dark:hover:bg-accent-blue'
                   >
                     <Send size={12} />
                     Send
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
+                  size='sm'
                   onClick={() => handlePlayClick(channel)}
-                  className='inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-sea dark:bg-accent-blue hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sea dark:focus:ring-accent-blue transition-all duration-400'
+                  className='rounded-lg py-1.5 text-xs'
                 >
                   Play
-                </button>
+                </Button>
               </div>
             </li>
           ))}
-          {channels.length === 0 && <li className='px-4 py-8 text-center text-text-secondary dark:text-text-secondary'>No channels found.</li>}
+          {channels.length === 0 && (
+            <li className='px-4 py-8'>
+              <Empty title='No channels found' description='Try adjusting your search or selected group.' />
+            </li>
+          )}
         </ul>
 
         {/* Pagination */}
         {total > 0 && (
-          <div className='flex items-center justify-between border-t border-sand/10 dark:border-sand/20 bg-white dark:bg-sand/5 px-4 py-3 sm:px-6'>
+          <div className='border-t border-sand/10 bg-white px-4 py-3 dark:border-sand/20 dark:bg-sand/5 sm:px-6'>
             <div className='hidden sm:flex sm:flex-1 sm:items-center sm:justify-between'>
               <div>
                 <p className='text-sm text-text-secondary dark:text-text-secondary'>
@@ -164,51 +161,7 @@ export default function Channels() {
                 </p>
               </div>
               <div>
-                <nav className='isolate inline-flex -space-x-px rounded-md shadow-sm' aria-label='Pagination'>
-                  <button
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={page === 1}
-                    className='relative inline-flex items-center rounded-l-md px-2 py-2 text-text-secondary dark:text-text-secondary ring-1 ring-inset ring-sand/20 hover:bg-sand/10 dark:hover:bg-sand/20 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed'
-                  >
-                    <span className='sr-only'>Previous</span>
-                    <ChevronLeft className='h-5 w-5' aria-hidden='true' />
-                  </button>
-                  {[...Array(Math.min(5, totalPages))].map((_, i) => {
-                    // Start page calculation to keep current page centered-ish if possible, or simple sliding window
-                    let p = page;
-                    if (totalPages <= 5) {
-                      p = i + 1;
-                    } else if (page <= 3) {
-                      p = i + 1;
-                    } else if (page >= totalPages - 2) {
-                      p = totalPages - 4 + i;
-                    } else {
-                      p = page - 2 + i;
-                    }
-
-                    return (
-                      <button
-                        key={p}
-                        onClick={() => setPage(p)}
-                        className={`relative inline-flex items-center px-4 py-2 text-sm font-semibold ${
-                          p === page
-                            ? 'bg-sea dark:bg-accent-blue text-white focus:z-20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sea'
-                            : 'text-text-primary dark:text-text-primary ring-1 ring-inset ring-sand/20 hover:bg-sand/10 dark:hover:bg-sand/20 focus:z-20 focus:outline-offset-0'
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    );
-                  })}
-                  <button
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={page === totalPages}
-                    className='relative inline-flex items-center rounded-r-md px-2 py-2 text-text-secondary dark:text-text-secondary ring-1 ring-inset ring-sand/20 hover:bg-sand/10 dark:hover:bg-sand/20 focus:z-20 focus:outline-offset-0 disabled:opacity-50 disabled:cursor-not-allowed'
-                  >
-                    <span className='sr-only'>Next</span>
-                    <ChevronRight className='h-5 w-5' aria-hidden='true' />
-                  </button>
-                </nav>
+                <Pagination currentPage={page} totalPages={totalPages} hasPrevPage={page > 1} hasNextPage={page < totalPages} onPageChange={setPage} className='mt-0 justify-end' />
               </div>
             </div>
             {/* Mobile Pagination (Simple) */}
@@ -233,44 +186,37 @@ export default function Channels() {
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Play Modal */}
       <Modal isOpen={!!activeChannelForPlay} onClose={handleCancelPlay} title={`Play ${activeChannelForPlay?.tvgName || ''}`}>
         <div className='mt-2'>
           <p className='text-sm text-text-secondary dark:text-text-secondary'>Select a device to send this channel to.</p>
           <div className='mt-4'>
-            <select
-              className='block w-full pl-3 pr-10 py-2 text-base border-sand/30 dark:border-sand/50 bg-white dark:bg-sand/10 text-text-primary dark:text-text-primary focus:outline-none focus:ring-2 focus:ring-sea dark:focus:ring-accent-blue focus:border-sea dark:focus:border-accent-blue sm:text-sm rounded-lg border'
+            <Select
               value={modalDeviceId}
-              onChange={(e) => setModalDeviceId(e.target.value)}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <option value=''>Select a device</option>
-              {devices.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.nickname || d.deviceCode}
-                </option>
-              ))}
-            </select>
+              onChange={setModalDeviceId}
+              options={[{ label: 'Select a device', value: '' }, ...devices.map((d) => ({ label: d.nickname || d.deviceCode, value: d.id }))]}
+            />
           </div>
         </div>
         <div className='mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3'>
-          <button
+          <Button
             type='button'
+            variant='secondary'
             onClick={handleCancelPlay}
-            className='w-full sm:w-auto inline-flex justify-center rounded-lg border border-sand/30 dark:border-sand/50 shadow-sm px-4 py-2 bg-white dark:bg-sand/10 text-base font-medium text-text-primary dark:text-text-primary hover:bg-sand/10 dark:hover:bg-sand/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sea dark:focus:ring-accent-blue sm:text-sm transition-all duration-400'
+            className='w-full rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20 sm:w-auto'
           >
             Cancel
-          </button>
-          <button
+          </Button>
+          <Button
             type='button'
             onClick={handleConfirmPlay}
             disabled={!modalDeviceId || playDevice.isPending}
-            className='w-full sm:w-auto inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-sea dark:bg-accent-blue text-base font-medium text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sea dark:focus:ring-accent-blue sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-400'
+            className='w-full rounded-lg sm:w-auto'
           >
             {playDevice.isPending ? 'Starting...' : 'Confirm Play'}
-          </button>
+          </Button>
         </div>
       </Modal>
     </div>

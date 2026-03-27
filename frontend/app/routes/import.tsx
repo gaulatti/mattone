@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { Button, Card, SectionHeader, StatusBadge, Tabs } from '@gaulatti/bleecker';
 import type { ImportResult } from '../types';
 import { useImportChannels, useImportM3uFile } from '../services/queries/useImport';
 
@@ -54,35 +55,11 @@ export default function Import() {
 
   return (
     <div className='p-4 md:p-8 space-y-6'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-text-primary dark:text-text-primary mb-2'>Import Channels</h1>
-        <p className='text-text-secondary dark:text-text-secondary'>Import channels from M3U playlist URLs or upload a .m3u file</p>
-      </div>
+      <SectionHeader className='mb-8' title='Import Channels' description='Import channels from M3U playlist URLs or upload a .m3u file' />
 
-      <div className='bg-white dark:bg-sand/10 border border-sand/10 dark:border-sand/20 rounded-xl shadow-sm overflow-hidden'>
+      <Card className='overflow-hidden p-0'>
         <div className='border-b border-sand/10 dark:border-sand/20'>
-          <nav className='-mb-px flex' aria-label='Tabs'>
-            <button
-              onClick={() => setActiveTab('url')}
-              className={`w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm ${
-                activeTab === 'url'
-                  ? 'border-sea dark:border-accent-blue text-sea dark:text-accent-blue'
-                  : 'border-transparent text-text-secondary dark:text-text-secondary hover:text-text-primary dark:hover:text-text-primary hover:border-gray-300'
-              }`}
-            >
-              Import via URL
-            </button>
-            <button
-              onClick={() => setActiveTab('file')}
-              className={`w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm ${
-                activeTab === 'file'
-                  ? 'border-sea dark:border-accent-blue text-sea dark:text-accent-blue'
-                  : 'border-transparent text-text-secondary dark:text-text-secondary hover:text-text-primary dark:hover:text-text-primary hover:border-gray-300'
-              }`}
-            >
-              Upload M3U File
-            </button>
-          </nav>
+          <Tabs activeTab={activeTab} onChange={(id) => setActiveTab(id as 'url' | 'file')} tabs={[{ id: 'url', label: 'Import via URL' }, { id: 'file', label: 'Upload M3U File' }]} />
         </div>
 
         <div className='p-6'>
@@ -107,13 +84,13 @@ export default function Import() {
                     onChange={(e) => setUrl(e.target.value)}
                   />
                 </div>
-                <button
+                <Button
                   type='submit'
                   disabled={isPending}
-                  className='mt-3 w-full inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm font-medium rounded-lg text-white bg-sea dark:bg-accent-blue hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sea dark:focus:ring-accent-blue sm:mt-0 sm:w-auto sm:text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-400'
+                  className='mt-3 w-full rounded-lg sm:mt-0 sm:w-auto sm:text-sm'
                 >
                   {isPending ? 'Importing...' : 'Import'}
-                </button>
+                </Button>
               </form>
             </div>
           ) : (
@@ -139,13 +116,13 @@ export default function Import() {
                       '
                   />
                 </div>
-                <button
+                <Button
                   type='submit'
                   disabled={!file || isPending}
-                  className='mt-4 w-full sm:w-auto inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm font-medium rounded-lg text-white bg-sea dark:bg-accent-blue hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sea dark:focus:ring-accent-blue disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-400'
+                  className='mt-4 w-full rounded-lg sm:w-auto'
                 >
                   {isPending ? 'Uploading...' : 'Upload & Import'}
-                </button>
+                </Button>
               </form>
             </div>
           )}
@@ -170,45 +147,27 @@ export default function Import() {
             </div>
           </div>
         )}
-      </div>
+      </Card>
 
       {lastImport && (
-        <div className='bg-white dark:bg-sand/10 border border-sand/10 dark:border-sand/20 rounded-xl shadow-sm overflow-hidden animate-fade-in'>
+        <Card className='overflow-hidden animate-fade-in'>
           <div className='px-4 py-5 sm:p-6'>
             <h3 className='text-lg leading-6 font-medium text-text-primary dark:text-text-primary'>Import Result ({importTimestamp})</h3>
             <div className='mt-2 max-w-xl text-sm text-text-secondary dark:text-text-secondary'>
               <p>Successfully imported channels from the playlist.</p>
             </div>
             <div className='mt-5'>
-              <div className='rounded-md bg-stone/5 dark:bg-stone/20 p-4'>
-                <div className='flex'>
-                  <div className='flex-shrink-0'>
-                    {/* Check icon */}
-                    <svg
-                      className='h-5 w-5 text-sea dark:text-accent-blue'
-                      xmlns='http://www.w3.org/2000/svg'
-                      viewBox='0 0 20 20'
-                      fill='currentColor'
-                      aria-hidden='true'
-                    >
-                      <path
-                        fillRule='evenodd'
-                        d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
-                        clipRule='evenodd'
-                      />
-                    </svg>
-                  </div>
-                  <div className='ml-3'>
-                    <h3 className='text-sm font-medium text-text-primary dark:text-text-primary'>Import Complete</h3>
-                    <div className='mt-2 text-sm text-text-secondary dark:text-text-secondary'>
-                      <p>Number of channels imported: {lastImport.count}</p>
-                    </div>
+              <div className='rounded-md bg-stone/5 p-4 dark:bg-stone/20'>
+                <div className='flex items-start gap-3'>
+                  <StatusBadge label='Import Complete' variant='info' />
+                  <div className='text-sm text-text-secondary dark:text-text-secondary'>
+                    <p>Number of channels imported: {lastImport.count}</p>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </Card>
       )}
     </div>
   );

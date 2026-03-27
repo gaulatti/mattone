@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LoadingSpinner, Modal } from '@gaulatti/bleecker';
+import { Avatar, Button, Card, Empty, LoadingSpinner, Modal, SectionHeader } from '@gaulatti/bleecker';
 import type { Channel, ChannelGroup } from '../types';
 import { useChannelGroups, useCreateChannelGroup, useDeleteChannelGroup, useAddChannelToGroup, useRemoveChannelFromGroup } from '../services/queries/useChannelGroups';
 import { useChannels, useCreateChannel } from '../services/queries/useChannels';
@@ -124,13 +124,10 @@ export default function Groups() {
 
   return (
     <div className='p-4 md:p-8 space-y-6'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-text-primary dark:text-text-primary mb-2'>Channel Groups</h1>
-        <p className='text-text-secondary dark:text-text-secondary'>Organise channels into custom groups</p>
-      </div>
+      <SectionHeader className='mb-8' title='Channel Groups' description='Organise channels into custom groups' />
 
       {/* Create group form */}
-      <div className='bg-white dark:bg-sand/10 border border-sand/10 dark:border-sand/20 rounded-xl shadow-sm p-6'>
+      <Card>
         <h3 className='text-lg leading-6 font-medium text-text-primary dark:text-text-primary'>New Group</h3>
         <form onSubmit={handleCreateGroup} className='mt-4 sm:flex sm:items-center gap-3'>
           <div className='w-full sm:max-w-xs'>
@@ -142,21 +139,23 @@ export default function Groups() {
               className='shadow-sm focus:ring-2 focus:ring-sea dark:focus:ring-accent-blue block w-full sm:text-sm border-sand/30 dark:border-sand/50 bg-white dark:bg-sand/10 text-text-primary dark:text-text-primary rounded-lg p-2 border'
             />
           </div>
-          <button
+          <Button
             type='submit'
             disabled={createGroup.isPending || !newGroupName.trim()}
-            className='mt-3 w-full inline-flex items-center justify-center gap-1.5 px-4 py-2 border border-transparent shadow-sm font-medium rounded-lg text-white bg-sea dark:bg-accent-blue hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sea dark:focus:ring-accent-blue sm:mt-0 sm:w-auto sm:text-sm transition-all duration-400 disabled:opacity-50 disabled:cursor-not-allowed'
+            className='mt-3 w-full gap-1.5 rounded-lg sm:mt-0 sm:w-auto sm:text-sm'
           >
             <Plus size={16} />
             Create Group
-          </button>
+          </Button>
         </form>
-      </div>
+      </Card>
 
       {/* Groups list */}
-      <div className='bg-white dark:bg-sand/10 border border-sand/10 dark:border-sand/20 rounded-xl shadow-sm overflow-hidden'>
+      <Card className='overflow-hidden p-0'>
         {groups.length === 0 ? (
-          <p className='px-6 py-8 text-center text-text-secondary dark:text-text-secondary'>No groups yet. Create one above.</p>
+          <div className='px-6 py-8'>
+            <Empty title='No groups yet' description='Create your first channel group above.' />
+          </div>
         ) : (
           <ul className='divide-y divide-sand/10 dark:divide-sand/20'>
             {groups.map((group) => {
@@ -178,7 +177,8 @@ export default function Groups() {
                       </div>
                     </div>
                     <div className='flex items-center gap-2 ml-4' onClick={(e) => e.stopPropagation()}>
-                      <button
+                      <Button
+                        size='sm'
                         onClick={() => {
                           setAddChannelGroupId(group.id);
                           setChannelSearch('');
@@ -189,18 +189,20 @@ export default function Groups() {
                           setCustomChannelError('');
                         }}
                         title='Add channel to group'
-                        className='inline-flex items-center gap-1 px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-sea dark:bg-accent-blue hover:opacity-90 transition-all duration-400'
+                        className='gap-1 rounded-lg py-1.5 text-xs'
                       >
                         <PlusCircle size={14} />
                         Add
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant='destructive'
+                        size='sm'
                         onClick={() => handleDeleteGroup(group)}
                         title='Delete group'
-                        className='inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-terracotta hover:opacity-90 transition-all duration-400'
+                        className='rounded-lg py-1.5 text-xs'
                       >
                         <Trash2 size={14} />
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
@@ -213,25 +215,21 @@ export default function Groups() {
                         (group.channels ?? []).map((channel: Channel) => (
                           <li key={channel.id} className='px-8 py-3 flex items-center justify-between hover:bg-sand/10 dark:hover:bg-sand/10 transition-colors'>
                             <div className='flex items-center gap-3 min-w-0'>
-                              <div className='flex-shrink-0 h-8 w-8 flex items-center justify-center bg-sand/20 dark:bg-sand/30 rounded-full overflow-hidden'>
-                                {channel.tvgLogo ? (
-                                  <img src={channel.tvgLogo} alt='' className='h-full w-full object-cover' />
-                                ) : (
-                                  <span className='text-xs font-semibold text-text-secondary'>N/A</span>
-                                )}
-                              </div>
+                              <Avatar src={channel.tvgLogo} fallback={channel.tvgName} size='sm' />
                               <div className='min-w-0'>
                                 <p className='text-sm text-text-primary dark:text-text-primary truncate'>{channel.tvgName}</p>
                                 <p className='text-xs text-text-secondary dark:text-text-secondary'>{channel.groupTitle || 'Uncategorized'}</p>
                               </div>
                             </div>
-                            <button
+                            <Button
+                              variant='ghost'
+                              size='sm'
                               onClick={() => handleRemoveChannel(group.id, channel)}
                               title='Remove from group'
-                              className='flex-shrink-0 ml-4 text-terracotta hover:opacity-80 transition-opacity'
+                              className='ml-4 h-auto shrink-0 rounded-lg px-1.5 py-1 text-terracotta hover:translate-y-0 hover:bg-transparent hover:text-terracotta/80 dark:hover:bg-transparent'
                             >
                               <MinusCircle size={16} />
-                            </button>
+                            </Button>
                           </li>
                         ))
                       )}
@@ -242,7 +240,7 @@ export default function Groups() {
             })}
           </ul>
         )}
-      </div>
+      </Card>
 
       {/* Add channel modal */}
       <Modal
@@ -284,14 +282,15 @@ export default function Groups() {
             <p className='text-xs text-terracotta'>{customChannelError}</p>
           )}
           <div className='flex justify-end'>
-            <button
+            <Button
               type='submit'
               disabled={!customChannelName.trim() || !customChannelStreamUrl.trim() || createChannel.isPending || addChannel.isPending}
-              className='inline-flex items-center gap-1.5 px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg text-white bg-sea dark:bg-accent-blue hover:opacity-90 transition-all duration-400 disabled:opacity-50 disabled:cursor-not-allowed'
+              size='sm'
+              className='gap-1.5 rounded-lg py-1.5 text-xs'
             >
               <Plus size={14} />
               {createChannel.isPending || addChannel.isPending ? 'Creating...' : 'Create & Add'}
-            </button>
+            </Button>
           </div>
         </form>
 
@@ -317,36 +316,32 @@ export default function Groups() {
             </p>
           ) : (
             availableChannels.map((channel) => (
-              <button
+              <Button
                 key={channel.id}
                 onClick={() => {
                   if (addChannelGroupId) handleAddChannel(addChannelGroupId, channel);
                 }}
                 disabled={addChannel.isPending}
-                className='w-full px-4 py-2.5 flex items-center gap-3 hover:bg-sand/10 dark:hover:bg-sand/20 transition-colors text-left disabled:opacity-50'
+                variant='ghost'
+                className='w-full justify-start gap-3 rounded-none px-4 py-2.5 hover:translate-y-0'
               >
-                <div className='flex-shrink-0 h-7 w-7 flex items-center justify-center bg-sand/20 dark:bg-sand/30 rounded-full overflow-hidden'>
-                  {channel.tvgLogo ? (
-                    <img src={channel.tvgLogo} alt='' className='h-full w-full object-cover' />
-                  ) : (
-                    <span className='text-xs text-text-secondary'>N/A</span>
-                  )}
-                </div>
+                <Avatar src={channel.tvgLogo} fallback={channel.tvgName} size='sm' className='h-7 w-7 text-[10px]' />
                 <div className='min-w-0'>
                   <p className='text-sm text-text-primary dark:text-text-primary truncate'>{channel.tvgName}</p>
                   <p className='text-xs text-text-secondary dark:text-text-secondary'>{channel.groupTitle || 'Uncategorized'}</p>
                 </div>
-              </button>
+              </Button>
             ))
           )}
         </div>
         <div className='mt-4 flex justify-end'>
-          <button
+          <Button
+            variant='secondary'
             onClick={closeAddChannelModal}
-            className='px-4 py-2 border border-sand/30 dark:border-sand/50 text-sm font-medium rounded-lg text-text-primary dark:text-text-primary hover:bg-sand/10 transition-all duration-400'
+            className='rounded-lg border-sand/30 dark:border-sand/50'
           >
             Done
-          </button>
+          </Button>
         </div>
       </Modal>
     </div>
