@@ -2,6 +2,7 @@ import { Navigate } from 'react-router';
 import { useAuthStatus } from '../../hooks/useAuth';
 import { LogIn } from 'lucide-react';
 import { signInWithRedirect } from 'aws-amplify/auth';
+import { Button, Card, IconBadge, SectionHeader } from '@gaulatti/bleecker';
 
 export default function LoginForm() {
   const { isAuthenticated, isLoaded } = useAuthStatus();
@@ -14,18 +15,17 @@ export default function LoginForm() {
   }
 
   return (
-    <div className='bg-white dark:bg-sand/10 rounded-2xl border border-sand/10 dark:border-sand/20 p-8 shadow-lg'>
+    <Card className='rounded-2xl p-8 shadow-lg'>
       <div className='text-center mb-8'>
-        <div className='inline-flex h-16 w-16 items-center justify-center rounded-full bg-sea dark:bg-accent-blue mb-4'>
+        <IconBadge size='lg' className='mx-auto mb-4 rounded-full bg-sea text-white dark:bg-accent-blue dark:text-white'>
           <LogIn className='h-8 w-8 text-white' />
-        </div>
-        <h1 className='text-3xl font-bold text-text-primary dark:text-text-primary mb-2'>Welcome Back</h1>
-        <p className='text-text-secondary dark:text-text-secondary'>Sign in to access the admin panel</p>
+        </IconBadge>
+        <SectionHeader title='Welcome Back' description='Sign in to access the admin panel' className='items-center text-center' />
       </div>
 
-      <button
+      <Button
         onClick={() => signInWithRedirect({ provider: 'Google' }).catch((e) => console.error('Error signing in', e))}
-        className='w-full px-6 py-3 bg-sea dark:bg-accent-blue text-white rounded-lg hover:opacity-90 transition-opacity font-medium flex items-center justify-center gap-3'
+        className='w-full rounded-lg px-6 py-3'
       >
         <svg className='w-5 h-5' viewBox='0 0 24 24'>
           <path
@@ -34,11 +34,11 @@ export default function LoginForm() {
           />
         </svg>
         Sign in with Google
-      </button>
+      </Button>
 
       <p className='mt-6 text-center text-sm text-text-secondary dark:text-text-secondary'>
         By signing in, you agree to our Terms of Service and Privacy Policy.
       </p>
-    </div>
+    </Card>
   );
 }

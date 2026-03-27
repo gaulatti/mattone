@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LoadingSpinner } from '@gaulatti/bleecker';
+import { Button, Card, Empty, LoadingSpinner, SectionHeader } from '@gaulatti/bleecker';
 import type { Device } from '../types';
 import { useDevices, useAddDevice, useDeleteDevice, useUpdateDevice, useStopDevice } from '../services/queries/useDevices';
 import { Pencil, Check, X, Square } from 'lucide-react';
@@ -67,13 +67,10 @@ export default function Devices() {
 
   return (
     <div className='p-4 md:p-8 space-y-6'>
-      <div className='mb-8'>
-        <h1 className='text-3xl font-bold text-text-primary dark:text-text-primary mb-2'>Devices</h1>
-        <p className='text-text-secondary dark:text-text-secondary'>Manage your streaming devices</p>
-      </div>
+      <SectionHeader className='mb-8' title='Devices' description='Manage your streaming devices' />
 
       {/* Add Device Form */}
-      <div className='bg-white dark:bg-sand/10 border border-sand/10 dark:border-sand/20 rounded-xl shadow-sm p-6'>
+      <Card>
         <h3 className='text-lg leading-6 font-medium text-text-primary dark:text-text-primary'>Add New Device</h3>
         <form onSubmit={handleAdd} className='mt-5 sm:flex sm:items-center gap-3'>
           <div className='w-full sm:max-w-xs'>
@@ -90,17 +87,14 @@ export default function Devices() {
               onChange={(e) => setNewDeviceCode(e.target.value)}
             />
           </div>
-          <button
-            type='submit'
-            className='mt-3 w-full inline-flex items-center justify-center px-4 py-2 border border-transparent shadow-sm font-medium rounded-lg text-white bg-sea dark:bg-accent-blue hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sea dark:focus:ring-accent-blue sm:mt-0 sm:w-auto sm:text-sm transition-all duration-400'
-          >
+          <Button type='submit' className='mt-3 w-full rounded-lg sm:mt-0 sm:w-auto sm:text-sm'>
             Add Device
-          </button>
+          </Button>
         </form>
-      </div>
+      </Card>
 
       {/* Devices List */}
-      <div className='bg-white dark:bg-sand/10 border border-sand/10 dark:border-sand/20 rounded-xl shadow-sm overflow-hidden'>
+      <Card className='overflow-hidden p-0'>
         <ul className='divide-y divide-sand/10 dark:divide-sand/20'>
           {devices.map((device) => (
             <li key={device.id}>
@@ -126,34 +120,40 @@ export default function Devices() {
                               if (e.key === 'Escape') handleEditCancel();
                             }}
                           />
-                          <button
+                          <Button
+                            size='sm'
+                            variant='ghost'
                             onClick={() => handleEditSave(device)}
                             disabled={updateDevice.isPending}
-                            className='text-sea dark:text-accent-blue hover:opacity-80 transition-opacity'
+                            className='h-auto rounded-lg px-1.5 py-1 text-sea hover:translate-y-0 hover:bg-transparent hover:text-sea/80 dark:text-accent-blue dark:hover:bg-transparent dark:hover:text-accent-blue/80'
                             aria-label='Save nickname'
                           >
                             <Check size={16} />
-                          </button>
-                          <button
+                          </Button>
+                          <Button
+                            size='sm'
+                            variant='ghost'
                             onClick={handleEditCancel}
-                            className='text-text-secondary hover:opacity-80 transition-opacity'
+                            className='h-auto rounded-lg px-1.5 py-1 hover:translate-y-0 hover:bg-transparent'
                             aria-label='Cancel'
                           >
                             <X size={16} />
-                          </button>
+                          </Button>
                         </>
                       ) : (
                         <>
                           <span className='text-sm text-text-secondary dark:text-text-secondary'>
                             {device.nickname || <em className='opacity-50'>No nickname</em>}
                           </span>
-                          <button
+                          <Button
+                            size='sm'
+                            variant='ghost'
                             onClick={() => handleEditStart(device)}
-                            className='text-text-secondary hover:text-sea dark:hover:text-accent-blue transition-colors'
+                            className='h-auto rounded-lg px-1.5 py-1 hover:translate-y-0 hover:bg-transparent hover:text-sea dark:hover:bg-transparent dark:hover:text-accent-blue'
                             aria-label='Edit nickname'
                           >
                             <Pencil size={14} />
-                          </button>
+                          </Button>
                         </>
                       )}
                     </div>
@@ -165,28 +165,36 @@ export default function Devices() {
                   </div>
                 </div>
                 <div className='ml-5 flex-shrink-0 flex items-center gap-2'>
-                  <button
+                  <Button
+                    variant='secondary'
+                    size='sm'
                     onClick={() => handleStop(device)}
                     disabled={stopDevice.isPending}
                     title='Stop stream on this device'
-                    className='inline-flex items-center gap-1 px-3 py-2 border border-sand/30 dark:border-sand/50 text-sm leading-4 font-medium rounded-lg text-text-primary dark:text-text-primary bg-white dark:bg-sand/10 hover:bg-sand/10 dark:hover:bg-sand/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sea dark:focus:ring-accent-blue transition-all duration-400 disabled:opacity-50 disabled:cursor-not-allowed'
+                    className='gap-1 rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20'
                   >
                     <Square size={14} />
                     Stop
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    variant='destructive'
+                    size='sm'
                     onClick={() => handleDelete(device)}
-                    className='inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-lg text-white bg-terracotta dark:bg-terracotta hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-terracotta transition-all duration-400'
+                    className='rounded-lg'
                   >
                     Delete
-                  </button>
+                  </Button>
                 </div>
               </div>
             </li>
           ))}
-          {devices.length === 0 && <li className='px-4 py-8 text-center text-text-secondary dark:text-text-secondary'>No devices registered.</li>}
+          {devices.length === 0 && (
+            <li className='px-4 py-8'>
+              <Empty title='No devices registered' description='Add your first device above to start managing playback.' />
+            </li>
+          )}
         </ul>
-      </div>
+      </Card>
     </div>
   );
 }
