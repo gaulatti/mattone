@@ -2,9 +2,11 @@ import {
   AppShell,
   BleeckerThemeScript,
   Button,
+  Card,
   Footer as BleeckerFooter,
   Header as BleeckerHeader,
   HeaderSelect,
+  SectionHeader,
   ThemeProvider,
   ThemeToggle,
   type NavItem,
@@ -246,13 +248,14 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   return (
     <Provider store={store}>
       <main className='container mx-auto p-4 pt-24'>
-        <h1>{message}</h1>
-        <p>{details}</p>
-        {stack ? (
-          <pre className='w-full overflow-x-auto p-4'>
-            <code>{stack}</code>
-          </pre>
-        ) : null}
+        <Card className='mx-auto max-w-3xl rounded-2xl p-6 shadow-lg'>
+          <SectionHeader title={message} description={details} className='mb-4' />
+          {stack ? (
+            <pre className='w-full overflow-x-auto rounded-lg bg-sand/10 p-4 text-sm dark:bg-sand/20'>
+              <code>{stack}</code>
+            </pre>
+          ) : null}
+        </Card>
       </main>
     </Provider>
   );

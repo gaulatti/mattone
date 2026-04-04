@@ -1,5 +1,5 @@
 import type { Route } from './+types/logout';
-import { LoadingSpinner } from '@gaulatti/bleecker';
+import { Card, LoadingSpinner, SectionHeader } from '@gaulatti/bleecker';
 
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
@@ -25,15 +25,12 @@ export default function Logout() {
 
   return (
     <div className='flex-1 flex items-center justify-center bg-light-sand dark:bg-deep-sea'>
-      <div className='w-full max-w-md mx-4 rounded-2xl border border-sand/20 dark:border-sand/40 bg-white/60 dark:bg-dark-sand/50 backdrop-blur-xl shadow-[0_12px_40px_rgba(0,0,0,0.08)] px-6 py-10'>
+      <Card className='w-full max-w-md mx-4 rounded-2xl px-6 py-10 shadow-lg'>
         <div className='flex flex-col items-center text-center gap-5'>
           <LoadingSpinner size='lg' />
-          <div>
-            <h1 className='text-2xl font-semibold tracking-tight text-text-primary dark:text-white'>Signing you out</h1>
-            <p className='mt-2 text-sm text-text-secondary dark:text-text-secondary'>Clearing your session and returning you to the login screen.</p>
-          </div>
+          <SectionHeader className='text-center' title='Signing you out' description='Clearing your session and returning you to the login screen.' />
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

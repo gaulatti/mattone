@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Avatar, Button, Card, Empty, LoadingSpinner, Modal, SectionHeader } from '@gaulatti/bleecker';
+import { AlertDialog, Avatar, Button, Card, Empty, LoadingSpinner, Modal, SectionHeader } from '@gaulatti/bleecker';
 import type { Channel, ChannelGroup } from '../types';
 import { useChannelGroups, useCreateChannelGroup, useDeleteChannelGroup, useAddChannelToGroup, useRemoveChannelFromGroup } from '../services/queries/useChannelGroups';
 import { useChannels, useCreateChannel } from '../services/queries/useChannels';
@@ -16,6 +16,7 @@ export default function Groups() {
   const [customChannelLogo, setCustomChannelLogo] = useState('');
   const [customChannelGroupTitle, setCustomChannelGroupTitle] = useState('');
   const [customChannelError, setCustomChannelError] = useState('');
+  const [groupPendingDelete, setGroupPendingDelete] = useState<ChannelGroup | null>(null);
 
   const debouncedSearch = useDebounce(channelSearch, 400);
 
@@ -38,10 +39,14 @@ export default function Groups() {
   };
 
   const handleDeleteGroup = (group: ChannelGroup) => {
-    if (confirm(`Delete group "${group.name}"?`)) {
-      deleteGroup.mutate(group.id);
-      if (expandedGroupId === group.id) setExpandedGroupId(null);
-    }
+    setGroupPendingDelete(group);
+  };
+
+  const confirmDeleteGroup = () => {
+    if (!groupPendingDelete) return;
+    deleteGroup.mutate(groupPendingDelete.id);
+    if (expandedGroupId === groupPendingDelete.id) setExpandedGroupId(null);
+    setGroupPendingDelete(null);
   };
 
   const handleAddChannel = (groupId: string, channel: Channel) => {
@@ -344,6 +349,17 @@ export default function Groups() {
           </Button>
         </div>
       </Modal>
+
+      <AlertDialog
+        isOpen={!!groupPendingDelete}
+        title='Delete group?'
+        description={groupPendingDelete ? `This will delete the group "${groupPendingDelete.name}".` : undefined}
+        confirmLabel='Delete'
+        cancelLabel='Cancel'
+        variant='destructive'
+        onCancel={() => setGroupPendingDelete(null)}
+        onConfirm={confirmDeleteGroup}
+      />
     </div>
   );
 }

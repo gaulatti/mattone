@@ -153,36 +153,14 @@ export default function Channels() {
         {/* Pagination */}
         {total > 0 && (
           <div className='border-t border-sand/10 bg-white px-4 py-3 dark:border-sand/20 dark:bg-sand/5 sm:px-6'>
-            <div className='hidden sm:flex sm:flex-1 sm:items-center sm:justify-between'>
+            <div className='flex flex-col gap-3 sm:flex-row sm:flex-1 sm:items-center sm:justify-between'>
               <div>
                 <p className='text-sm text-text-secondary dark:text-text-secondary'>
                   Showing <span className='font-medium'>{Math.min((page - 1) * PAGE_SIZE + 1, total)}</span> to{' '}
                   <span className='font-medium'>{Math.min(page * PAGE_SIZE, total)}</span> of <span className='font-medium'>{total}</span> results
                 </p>
               </div>
-              <div>
-                <Pagination currentPage={page} totalPages={totalPages} hasPrevPage={page > 1} hasNextPage={page < totalPages} onPageChange={setPage} className='mt-0 justify-end' />
-              </div>
-            </div>
-            {/* Mobile Pagination (Simple) */}
-            <div className='flex flex-1 justify-between sm:hidden'>
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className='relative inline-flex items-center rounded-md border border-sand/20 bg-white dark:bg-sand/10 px-4 py-2 text-sm font-medium text-text-primary dark:text-text-primary hover:bg-sand/5 dark:hover:bg-sand/20 disabled:opacity-50'
-              >
-                Previous
-              </button>
-              <div className='flex items-center text-sm text-text-secondary'>
-                {page} / {totalPages}
-              </div>
-              <button
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                disabled={page === totalPages}
-                className='relative ml-3 inline-flex items-center rounded-md border border-sand/20 bg-white dark:bg-sand/10 px-4 py-2 text-sm font-medium text-text-primary dark:text-text-primary hover:bg-sand/5 dark:hover:bg-sand/20 disabled:opacity-50'
-              >
-                Next
-              </button>
+              <Pagination currentPage={page} totalPages={totalPages} hasPrevPage={page > 1} hasNextPage={page < totalPages} onPageChange={setPage} className='mt-0 sm:justify-end' />
             </div>
           </div>
         )}

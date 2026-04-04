@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button, Card, Empty, LoadingSpinner, SectionHeader } from '@gaulatti/bleecker';
+import { AlertDialog, Button, Card, Empty, LoadingSpinner, SectionHeader } from '@gaulatti/bleecker';
 import type { Device } from '../types';
 import { useDevices, useAddDevice, useDeleteDevice, useUpdateDevice, useStopDevice } from '../services/queries/useDevices';
 import { Pencil, Check, X, Square } from 'lucide-react';
@@ -8,6 +8,7 @@ export default function Devices() {
   const [newDeviceCode, setNewDeviceCode] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingNickname, setEditingNickname] = useState('');
+  const [devicePendingDelete, setDevicePendingDelete] = useState<Device | null>(null);
 
   const { data: devices = [], isLoading } = useDevices();
   const addDevice = useAddDevice();
@@ -16,9 +17,13 @@ export default function Devices() {
   const stopDevice = useStopDevice();
 
   const handleDelete = (device: Device) => {
-    if (confirm(`Are you sure you want to delete device ${device.nickname || device.deviceCode}?`)) {
-      deleteDevice.mutate(device.id);
-    }
+    setDevicePendingDelete(device);
+  };
+
+  const confirmDelete = () => {
+    if (!devicePendingDelete) return;
+    deleteDevice.mutate(devicePendingDelete.id);
+    setDevicePendingDelete(null);
   };
 
   const handleAdd = (e: React.FormEvent) => {
@@ -195,6 +200,17 @@ export default function Devices() {
           )}
         </ul>
       </Card>
+
+      <AlertDialog
+        isOpen={!!devicePendingDelete}
+        title='Delete device?'
+        description={devicePendingDelete ? `This will remove ${devicePendingDelete.nickname || devicePendingDelete.deviceCode} from your account.` : undefined}
+        confirmLabel='Delete'
+        cancelLabel='Cancel'
+        variant='destructive'
+        onCancel={() => setDevicePendingDelete(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   );
 }
