@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { Channel } from '../entities/channel.entity';
 import { User } from '../entities/user.entity';
 import { lastValueFrom } from 'rxjs';
@@ -67,27 +67,49 @@ export class M3uService {
     await queryRunner.startTransaction();
 
     try {
-      // Only clear channels for this specific user
-      this.logger.log(`Clearing existing channels for user ${user.id}...`);
-      await queryRunner.manager.delete(Channel, { userId: user.id });
+      this.logger.log(`Fetching all existing channels for user ${user.id}...`);
 
-      // Batch save
-      const chunkSize = 100;
+      // Fetch only streamUrls to keep memory usage minimal
+      const existingChannels = await queryRunner.manager.find(Channel, {
+        where: { userId: user.id },
+        select: ['streamUrl'],
+      });
+
+      const existingUrls = new Set(existingChannels.map((c) => c.streamUrl));
+      const payloadUrls = new Set<string>();
+
+      const toInsert: Partial<Channel>[] = [];
+
+      // Deduplicate against the database AND within the uploaded list itself
+      for (const channel of channels) {
+        if (!channel.streamUrl) continue;
+
+        if (
+          !existingUrls.has(channel.streamUrl) &&
+          !payloadUrls.has(channel.streamUrl)
+        ) {
+          toInsert.push(channel);
+          payloadUrls.add(channel.streamUrl);
+        }
+      }
+
       this.logger.log(
-        `Saving ${channels.length} channels in batches of ${chunkSize}...`,
+        `Found ${toInsert.length} new channels to insert out of ${channels.length} parsed.`,
       );
-      for (let i = 0; i < channels.length; i += chunkSize) {
-        await queryRunner.manager.save(
+
+      const chunkSize = 100;
+      for (let i = 0; i < toInsert.length; i += chunkSize) {
+        await queryRunner.manager.insert(
           Channel,
-          channels.slice(i, i + chunkSize),
+          toInsert.slice(i, i + chunkSize),
         );
       }
 
       await queryRunner.commitTransaction();
       this.logger.log(
-        `Imported ${channels.length} channels for user ${user.id}`,
+        `Successfully imported ${toInsert.length} new channels for user ${user.id}`,
       );
-      return { count: channels.length };
+      return { count: toInsert.length };
     } catch (err) {
       this.logger.error(`Failed to import channels: ${err.message}`, err.stack);
       await queryRunner.rollbackTransaction();
