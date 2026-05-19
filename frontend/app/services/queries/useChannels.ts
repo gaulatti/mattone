@@ -17,9 +17,9 @@ export const useChannels = (group?: string, search?: string, page: number = 1, l
   });
 };
 
-export const useChannelGroups = () => {
+export const useChannelGroupTitles = () => {
   return useQuery({
-    queryKey: ['channelGroups'],
+    queryKey: ['channelGroupTitles'],
     queryFn: async () => {
       const { data } = await api.get<string[]>('/channels/groups');
       return data;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Avatar, Button, Card, Empty, LoadingSpinner, Modal, Pagination, SectionHeader, Select } from '@gaulatti/bleecker';
 import type { Channel } from '../types';
-import { useChannels, useChannelGroups } from '../services/queries/useChannels';
+import { useChannels, useChannelGroupTitles } from '../services/queries/useChannels';
 import { useDevices, usePlayDevice } from '../services/queries/useDevices';
 import { useSelectedDevice } from '../hooks/useSelectedDevice';
 import { useDebounce } from '../hooks/useDebounce';
@@ -26,7 +26,7 @@ export default function Channels() {
   }, [selectedGroup, debouncedSearch]);
 
   const { data, isLoading: isLoadingChannels } = useChannels(selectedGroup, debouncedSearch, page, PAGE_SIZE);
-  const { data: groups = [] } = useChannelGroups();
+  const { data: groups = [] } = useChannelGroupTitles();
   const { data: devices = [] } = useDevices();
   const playDevice = usePlayDevice();
 

@@ -67,7 +67,7 @@ export default function Import() {
             <div>
               <h3 className='text-lg leading-6 font-medium text-text-primary dark:text-text-primary'>Import from M3U URL</h3>
               <div className='mt-2 max-w-xl text-sm text-text-secondary dark:text-text-secondary'>
-                <p>Enter the URL of your M3U playlist to import channels. This will replace existing channels.</p>
+                <p>Enter the URL of your M3U playlist to import channels. Only new channels will be added to your existing list.</p>
               </div>
               <form onSubmit={handleImport} className='mt-5 sm:flex sm:items-center gap-3'>
                 <div className='w-full sm:max-w-md'>

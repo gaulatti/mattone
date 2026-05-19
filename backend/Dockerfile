@@ -1,20 +1,13 @@
-# Use Node.js 21
-FROM node:21
-
+FROM node:22-alpine AS development
 WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+CMD ["npm", "run", "start:dev"]
 
-# Install pnpm
-RUN npm install -g pnpm
-
-# Copy only package files initially to leverage Docker cache for dependencies
-COPY package*.json pnpm-lock.yaml ./
-RUN pnpm install
-
-# Copy the entire application after installing dependencies
+FROM node:22-alpine AS production
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
 COPY . .
-
-# Build the application
-RUN pnpm run build
-
-# Start the server as the default command
+RUN npm run build
 CMD ["node", "dist/main"]
