@@ -70,4 +70,10 @@ export class DevicesController {
   async stop(@Request() req, @Param('id') id: string) {
     return this.devicesService.stop(id, req.user);
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/callsign')
+  async callsign(@Request() req, @Param('id') id: string) {
+    return this.devicesService.callsign(id, req.user);
+  }
 }

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Button, Card, LoadingSpinner, SectionHeader, Select } from '@gaulatti/bleecker';
-import { useDevices, usePlayDevice, useStopDevice } from '../services/queries/useDevices';
+import { useDevices, usePlayDevice, useStopDevice, useCallsignDevice } from '../services/queries/useDevices';
 import { useChannels } from '../services/queries/useChannels';
+import { Radio } from 'lucide-react';
 
 export default function Home() {
   const [selectedDevice, setSelectedDevice] = useState<string>('');
@@ -13,6 +14,7 @@ export default function Home() {
   const totalChannels = channelsData?.total || 0;
   const playDevice = usePlayDevice();
   const stopDevice = useStopDevice();
+  const callsignDevice = useCallsignDevice();
 
   const handlePlay = () => {
     const channelObj = channels.find((c) => c.id === selectedChannel);
@@ -24,6 +26,12 @@ export default function Home() {
   const handleStop = () => {
     if (selectedDevice) {
       stopDevice.mutate(selectedDevice);
+    }
+  };
+
+  const handleCallsign = () => {
+    if (selectedDevice) {
+      callsignDevice.mutate(selectedDevice);
     }
   };
 
@@ -96,6 +104,15 @@ export default function Home() {
                 className='rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20'
               >
                 {stopDevice.isPending ? 'Stopping...' : 'Stop'}
+              </Button>
+              <Button
+                variant='secondary'
+                onClick={handleCallsign}
+                disabled={!selectedDevice || callsignDevice.isPending}
+                className='gap-1.5 rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20'
+              >
+                <Radio size={14} />
+                Callsign
               </Button>
             </div>
           </div>

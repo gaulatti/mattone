@@ -66,3 +66,11 @@ export const useStopDevice = () => {
   });
 };
 
+export const useCallsignDevice = () => {
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await api.post(`/devices/${id}/callsign`);
+    }
+  });
+};
+

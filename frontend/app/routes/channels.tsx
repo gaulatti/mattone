@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { Avatar, Button, Card, Empty, LoadingSpinner, Modal, Pagination, SectionHeader, Select } from '@gaulatti/bleecker';
 import type { Channel } from '../types';
 import { useChannels, useChannelGroupTitles } from '../services/queries/useChannels';
-import { useDevices, usePlayDevice } from '../services/queries/useDevices';
+import { useDevices, usePlayDevice, useCallsignDevice } from '../services/queries/useDevices';
 import { useSelectedDevice } from '../hooks/useSelectedDevice';
 import { useDebounce } from '../hooks/useDebounce';
-import { Send } from 'lucide-react';
+import { Radio, Send } from 'lucide-react';
 
 const PAGE_SIZE = 50;
 
@@ -29,6 +29,7 @@ export default function Channels() {
   const { data: groups = [] } = useChannelGroupTitles();
   const { data: devices = [] } = useDevices();
   const playDevice = usePlayDevice();
+  const callsignDevice = useCallsignDevice();
 
   const channels = data?.data || [];
   const total = data?.total || 0;
@@ -65,6 +66,12 @@ export default function Channels() {
 
   const handleCancelPlay = () => {
     setActiveChannelForPlay(null);
+  };
+
+  const handleCallsign = () => {
+    if (modalDeviceId) {
+      callsignDevice.mutate(modalDeviceId);
+    }
   };
 
   if (isLoadingChannels && page === 1) {
@@ -177,6 +184,21 @@ export default function Channels() {
               options={[{ label: 'Select a device', value: '' }, ...devices.map((d) => ({ label: d.nickname || d.deviceCode, value: d.id }))]}
             />
           </div>
+          {modalDeviceId && (
+            <div className='mt-4'>
+              <Button
+                type='button'
+                variant='secondary'
+                size='sm'
+                onClick={handleCallsign}
+                disabled={callsignDevice.isPending}
+                className='gap-1 rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20'
+              >
+                <Radio size={14} />
+                Callsign
+              </Button>
+            </div>
+          )}
         </div>
         <div className='mt-6 flex flex-col-reverse sm:flex-row sm:justify-end gap-3'>
           <Button

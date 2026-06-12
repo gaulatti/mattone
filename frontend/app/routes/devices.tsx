@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { AlertDialog, Button, Card, Empty, LoadingSpinner, SectionHeader } from '@gaulatti/bleecker';
 import type { Device } from '../types';
-import { useDevices, useAddDevice, useDeleteDevice, useUpdateDevice, useStopDevice } from '../services/queries/useDevices';
-import { Pencil, Check, X, Square } from 'lucide-react';
+import { useDevices, useAddDevice, useDeleteDevice, useUpdateDevice, useStopDevice, useCallsignDevice } from '../services/queries/useDevices';
+import { Pencil, Check, X, Square, Radio } from 'lucide-react';
 
 export default function Devices() {
   const [newDeviceCode, setNewDeviceCode] = useState('');
@@ -15,6 +15,7 @@ export default function Devices() {
   const deleteDevice = useDeleteDevice();
   const updateDevice = useUpdateDevice();
   const stopDevice = useStopDevice();
+  const callsignDevice = useCallsignDevice();
 
   const handleDelete = (device: Device) => {
     setDevicePendingDelete(device);
@@ -60,6 +61,10 @@ export default function Devices() {
 
   const handleStop = (device: Device) => {
     stopDevice.mutate(device.id);
+  };
+
+  const handleCallsign = (device: Device) => {
+    callsignDevice.mutate(device.id);
   };
 
   if (isLoading) {
@@ -170,6 +175,17 @@ export default function Devices() {
                   </div>
                 </div>
                 <div className='ml-5 flex-shrink-0 flex items-center gap-2'>
+                  <Button
+                    variant='secondary'
+                    size='sm'
+                    onClick={() => handleCallsign(device)}
+                    disabled={callsignDevice.isPending}
+                    title='Send callsign to this device'
+                    className='gap-1 rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20'
+                  >
+                    <Radio size={14} />
+                    Callsign
+                  </Button>
                   <Button
                     variant='secondary'
                     size='sm'

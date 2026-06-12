@@ -186,4 +186,22 @@ export class DevicesService implements OnModuleInit {
     });
     return { status: sent ? 'command sent' : 'queued' };
   }
+
+  async callsign(id: string, user: User) {
+    const device = await this.deviceRepository.findOne({
+      where: { id, userId: user.id },
+    });
+    if (!device) {
+      throw new NotFoundException('Device not found');
+    }
+
+    const payload = {
+      type: 'callsign',
+      deviceCode: device.deviceCode,
+      nickname: device.nickname,
+    };
+
+    const sent = this.sseService.sendCommand(device.deviceCode, payload);
+    return { status: sent ? 'command sent' : 'queued' };
+  }
 }
