@@ -2,19 +2,33 @@ import { useState, useEffect, useCallback } from 'react';
 
 const PERSIST_KEY = 'mattone:selectedDeviceId';
 
+let globalSelectedDeviceId = '';
+const listeners = new Set<() => void>();
+
+function notifyListeners() {
+  listeners.forEach((listener) => listener());
+}
+
+function getInitialValue(): string {
+  if (globalSelectedDeviceId) return globalSelectedDeviceId;
+  if (typeof window === 'undefined') return '';
+  return window.localStorage.getItem(PERSIST_KEY) || '';
+}
+
 export function useSelectedDevice() {
-  const [selectedDeviceId, setSelectedDeviceIdState] = useState<string>('');
+  const [selectedDeviceId, setSelectedDeviceIdState] = useState<string>(getInitialValue);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const stored = window.localStorage.getItem(PERSIST_KEY);
-    if (stored) {
-      setSelectedDeviceIdState(stored);
-    }
+    setSelectedDeviceIdState(globalSelectedDeviceId);
+    const listener = () => {
+      setSelectedDeviceIdState(globalSelectedDeviceId);
+    };
+    listeners.add(listener);
+    return () => listeners.delete(listener);
   }, []);
 
   const setSelectedDeviceId = useCallback((id: string) => {
-    setSelectedDeviceIdState(id);
+    globalSelectedDeviceId = id;
     if (typeof window !== 'undefined') {
       if (id) {
         window.localStorage.setItem(PERSIST_KEY, id);
@@ -22,6 +36,7 @@ export function useSelectedDevice() {
         window.localStorage.removeItem(PERSIST_KEY);
       }
     }
+    notifyListeners();
   }, []);
 
   return { selectedDeviceId, setSelectedDeviceId };

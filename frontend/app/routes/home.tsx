@@ -65,7 +65,7 @@ export default function Home() {
                 value={selectedDevice}
                 onChange={setSelectedDevice}
                 placeholder='Select a device'
-                options={devices.map((device) => ({ label: device.deviceCode, value: device.id }))}
+                options={devices.map((device) => ({ label: device.nickname || device.deviceCode, value: device.id }))}
               />
             </div>
 
