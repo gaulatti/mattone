@@ -2,29 +2,43 @@ import { useState, useEffect, useCallback } from 'react';
 
 const PERSIST_KEY = 'mattone:selectedDeviceId';
 
-let globalSelectedDeviceId = '';
+function readPersistedId(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    return window.localStorage.getItem(PERSIST_KEY) || '';
+  } catch {
+    return '';
+  }
+}
+
+let globalSelectedDeviceId = readPersistedId();
 const listeners = new Set<() => void>();
 
 function notifyListeners() {
   listeners.forEach((listener) => listener());
 }
 
-function getInitialValue(): string {
-  if (globalSelectedDeviceId) return globalSelectedDeviceId;
-  if (typeof window === 'undefined') return '';
-  return window.localStorage.getItem(PERSIST_KEY) || '';
-}
-
 export function useSelectedDevice() {
-  const [selectedDeviceId, setSelectedDeviceIdState] = useState<string>(getInitialValue);
+  const [selectedDeviceId, setSelectedDeviceIdState] = useState<string>(globalSelectedDeviceId);
 
   useEffect(() => {
-    setSelectedDeviceIdState(globalSelectedDeviceId);
     const listener = () => {
       setSelectedDeviceIdState(globalSelectedDeviceId);
     };
     listeners.add(listener);
-    return () => listeners.delete(listener);
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === PERSIST_KEY) {
+        globalSelectedDeviceId = event.newValue || '';
+        notifyListeners();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      listeners.delete(listener);
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
 
   const setSelectedDeviceId = useCallback((id: string) => {
