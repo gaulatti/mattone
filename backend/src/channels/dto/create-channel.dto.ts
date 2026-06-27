@@ -18,6 +18,5 @@ export class CreateChannelDto {
 
   @IsString()
   @IsNotEmpty()
-  @MaxLength(2000)
   streamUrl: string;
 }
