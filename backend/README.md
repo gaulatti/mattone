@@ -57,6 +57,16 @@ $ pnpm run test:e2e
 $ pnpm run test:cov
 ```
 
+## Database migrations
+
+Local development uses `synchronize: true` in `app.module.ts`, so schema changes are applied automatically.
+
+For production (or any environment with `synchronize: false`), run the SQL migrations in the `migrations/` folder in order, for example:
+
+```bash
+$ psql $DATABASE_URL -f migrations/001-add-quad-mode-to-devices.sql
+```
+
 ## Deployment
 
 When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.

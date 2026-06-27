@@ -105,6 +105,17 @@ export class DevicesController {
     return this.devicesService.stopQuadrant(id, req.user, quadrant);
   }
 
+  // Device-facing endpoint: lets the device report that a quadrant was
+  // stopped locally (e.g., long-press OK on the remote). Uses the device
+  // code header instead of JWT because the TV doesn't have user credentials.
+  @Post('quad/stop/:quadrant')
+  async deviceStopQuadrant(
+    @Headers('X-Device-ID') deviceCode: string,
+    @Param('quadrant', ParseIntPipe) quadrant: number,
+  ) {
+    return this.devicesService.deviceStopQuadrant(deviceCode, quadrant);
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Post(':id/callsign')
   async callsign(@Request() req, @Param('id') id: string) {

@@ -308,6 +308,26 @@ export class DevicesService implements OnModuleInit {
     return { status: sent ? 'command sent' : 'queued' };
   }
 
+  async deviceStopQuadrant(deviceCode: string, quadrant: number) {
+    if (quadrant < 0 || quadrant > 3) {
+      throw new BadRequestException('Quadrant must be between 0 and 3');
+    }
+
+    const device = await this.deviceRepository.findOne({
+      where: { deviceCode },
+    });
+    if (!device) {
+      throw new NotFoundException('Device not found');
+    }
+
+    device.activeQuadrants = device.activeQuadrants.filter(
+      (q) => q.quadrant !== quadrant,
+    );
+    await this.deviceRepository.save(device);
+
+    return { status: 'updated' };
+  }
+
   async stop(id: string, user: User) {
     const device = await this.getOwnedDevice(id, user);
 
