@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ChannelGroup } from '../entities/channel-group.entity';
@@ -53,7 +57,11 @@ export class ChannelGroupsService {
     await this.channelGroupRepository.remove(group);
   }
 
-  async addChannel(groupId: string, channelId: string, user: User): Promise<ChannelGroup> {
+  async addChannel(
+    groupId: string,
+    channelId: string,
+    user: User,
+  ): Promise<ChannelGroup> {
     const group = await this.channelGroupRepository.findOne({
       where: { id: groupId, userId: user.id },
       relations: ['channels'],
@@ -78,7 +86,11 @@ export class ChannelGroupsService {
     return this.channelGroupRepository.save(group);
   }
 
-  async removeChannel(groupId: string, channelId: string, user: User): Promise<void> {
+  async removeChannel(
+    groupId: string,
+    channelId: string,
+    user: User,
+  ): Promise<void> {
     const group = await this.channelGroupRepository.findOne({
       where: { id: groupId, userId: user.id },
       relations: ['channels'],

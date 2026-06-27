@@ -50,6 +50,32 @@ export const useDeleteDevice = () => {
   });
 };
 
+export const useEnableQuadMode = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.post<Device>(`/devices/${id}/quad/enable`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+    }
+  });
+};
+
+export const useDisableQuadMode = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data } = await api.post<Device>(`/devices/${id}/quad/disable`);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['devices'] });
+    }
+  });
+};
+
 export const usePlayDevice = () => {
   return useMutation({
     mutationFn: async ({ id, channel }: { id: string; channel: Channel }) => {
@@ -58,10 +84,38 @@ export const usePlayDevice = () => {
   });
 };
 
+export const usePlayQuadrant = () => {
+  return useMutation({
+    mutationFn: async ({
+      id,
+      channel,
+      quadrant
+    }: {
+      id: string;
+      channel: Channel;
+      quadrant?: number;
+    }) => {
+      const { data } = await api.post<{ status: string; quadrant: number }>(
+        `/devices/${id}/quad/play`,
+        { channelId: channel.id, quadrant }
+      );
+      return data;
+    }
+  });
+};
+
 export const useStopDevice = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       await api.post(`/devices/${id}/stop`);
+    }
+  });
+};
+
+export const useStopQuadrant = () => {
+  return useMutation({
+    mutationFn: async ({ id, quadrant }: { id: string; quadrant: number }) => {
+      await api.post(`/devices/${id}/quad/stop/${quadrant}`);
     }
   });
 };

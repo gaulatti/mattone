@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Avatar, Button, Card, Empty, LoadingSpinner, Modal, Pagination, SectionHeader, Select } from '@gaulatti/bleecker';
 import type { Channel } from '../types';
 import { useChannels, useChannelGroupTitles } from '../services/queries/useChannels';
-import { useDevices, usePlayDevice, useCallsignDevice } from '../services/queries/useDevices';
+import { useDevices, usePlayDevice, usePlayQuadrant, useCallsignDevice } from '../services/queries/useDevices';
 import { useSelectedDevice } from '../hooks/useSelectedDevice';
 import { useDebounce } from '../hooks/useDebounce';
 import { Radio, Send } from 'lucide-react';
@@ -15,6 +15,7 @@ export default function Channels() {
   const [page, setPage] = useState<number>(1);
   const [activeChannelForPlay, setActiveChannelForPlay] = useState<Channel | null>(null);
   const [modalDeviceId, setModalDeviceId] = useState<string>('');
+  const [modalQuadrant, setModalQuadrant] = useState<string>('auto');
 
   const { selectedDeviceId, setSelectedDeviceId } = useSelectedDevice();
 
@@ -29,6 +30,7 @@ export default function Channels() {
   const { data: groups = [] } = useChannelGroupTitles();
   const { data: devices = [] } = useDevices();
   const playDevice = usePlayDevice();
+  const playQuadrant = usePlayQuadrant();
   const callsignDevice = useCallsignDevice();
 
   const channels = data?.data || [];
@@ -36,22 +38,45 @@ export default function Channels() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
+  const modalDevice = devices.find((d) => d.id === modalDeviceId);
   const selectedDeviceLabel = selectedDevice?.nickname || selectedDevice?.deviceCode || 'selected TV';
 
   // Quick-send: send channel to currently selected device without a modal
   const handleQuickSend = (channel: Channel) => {
-    if (!selectedDeviceId) return;
-    playDevice.mutate({ id: selectedDeviceId, channel });
+    if (!selectedDeviceId || !selectedDevice) return;
+    if (selectedDevice.layoutMode === 'quad') {
+      playQuadrant.mutate({ id: selectedDeviceId, channel });
+    } else {
+      playDevice.mutate({ id: selectedDeviceId, channel });
+    }
   };
 
   // Full play modal (when no device is pre-selected or user wants to pick)
   const handlePlayClick = (channel: Channel) => {
     setActiveChannelForPlay(channel);
     setModalDeviceId(selectedDeviceId);
+    setModalQuadrant('auto');
   };
 
   const handleConfirmPlay = () => {
-    if (activeChannelForPlay && modalDeviceId) {
+    if (!activeChannelForPlay || !modalDeviceId || !modalDevice) return;
+
+    if (modalDevice.layoutMode === 'quad') {
+      const quadrant =
+        modalQuadrant === 'auto'
+          ? undefined
+          : Number.parseInt(modalQuadrant, 10);
+      playQuadrant.mutate(
+        { id: modalDeviceId, channel: activeChannelForPlay, quadrant },
+        {
+          onSuccess: () => {
+            setSelectedDeviceId(modalDeviceId);
+            setActiveChannelForPlay(null);
+            setModalQuadrant('auto');
+          }
+        }
+      );
+    } else {
       playDevice.mutate(
         { id: modalDeviceId, channel: activeChannelForPlay },
         {
@@ -66,6 +91,7 @@ export default function Channels() {
 
   const handleCancelPlay = () => {
     setActiveChannelForPlay(null);
+    setModalQuadrant('auto');
   };
 
   const handleCallsign = () => {
@@ -132,12 +158,12 @@ export default function Channels() {
                   <Button
                     size='sm'
                     onClick={() => handleQuickSend(channel)}
-                    disabled={playDevice.isPending}
-                    title={`Send to ${selectedDeviceLabel}`}
+                    disabled={playDevice.isPending || playQuadrant.isPending}
+                    title={`Send to ${selectedDeviceLabel}${selectedDevice?.layoutMode === 'quad' ? ' (quad)' : ''}`}
                     className='gap-1 rounded-lg bg-sea/80 py-1.5 text-xs hover:bg-sea dark:bg-accent-blue/80 dark:hover:bg-accent-blue'
                   >
                     <Send size={12} />
-                    Send
+                    {selectedDevice?.layoutMode === 'quad' ? 'Add to Quad' : 'Send'}
                   </Button>
                 )}
                 <Button
@@ -181,10 +207,33 @@ export default function Channels() {
             <Select
               value={modalDeviceId}
               onChange={setModalDeviceId}
-              options={[{ label: 'Select a device', value: '' }, ...devices.map((d) => ({ label: d.nickname || d.deviceCode, value: d.id }))]}
+              options={[{ label: 'Select a device', value: '' }, ...devices.map((d) => ({ label: `${d.nickname || d.deviceCode}${d.layoutMode === 'quad' ? ' (Quad)' : ''}`, value: d.id }))]}
             />
           </div>
-          {modalDeviceId && (
+          {modalDevice?.layoutMode === 'quad' && (
+            <div className='mt-4'>
+              <label className='block text-sm font-medium text-text-primary dark:text-text-primary mb-1'>
+                Quadrant
+              </label>
+              <Select
+                value={modalQuadrant}
+                onChange={setModalQuadrant}
+                options={[
+                  { label: 'Auto (next empty)', value: 'auto' },
+                  { label: 'Quadrant 1', value: '0' },
+                  { label: 'Quadrant 2', value: '1' },
+                  { label: 'Quadrant 3', value: '2' },
+                  { label: 'Quadrant 4', value: '3' }
+                ]}
+              />
+              {modalDevice.activeQuadrants.length >= 4 && modalQuadrant === 'auto' && (
+                <p className='mt-2 text-xs text-red-600 dark:text-red-400'>
+                  All quadrants are occupied. Choose a specific quadrant to replace, or stop one first.
+                </p>
+              )}
+            </div>
+          )}
+          {modalDeviceId && modalDevice?.layoutMode !== 'quad' && (
             <div className='mt-4'>
               <Button
                 type='button'
@@ -212,10 +261,19 @@ export default function Channels() {
           <Button
             type='button'
             onClick={handleConfirmPlay}
-            disabled={!modalDeviceId || playDevice.isPending}
+            disabled={
+              !modalDeviceId ||
+              playDevice.isPending ||
+              playQuadrant.isPending ||
+              (modalDevice?.layoutMode === 'quad' && modalQuadrant === 'auto' && modalDevice.activeQuadrants.length >= 4)
+            }
             className='w-full rounded-lg sm:w-auto'
           >
-            {playDevice.isPending ? 'Starting...' : 'Confirm Play'}
+            {playDevice.isPending || playQuadrant.isPending
+              ? 'Starting...'
+              : modalDevice?.layoutMode === 'quad'
+                ? 'Add to Quad'
+                : 'Confirm Play'}
           </Button>
         </div>
       </Modal>

@@ -10,11 +10,13 @@ import {
   Request,
   Headers,
   HttpCode,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { PlayCommandDto } from './dto/play-command.dto';
+import { PlayQuadrantCommandDto } from './dto/play-quadrant-command.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
 
 @Controller('devices')
@@ -56,6 +58,18 @@ export class DevicesController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Post(':id/quad/enable')
+  async enableQuadMode(@Request() req, @Param('id') id: string) {
+    return this.devicesService.enableQuadMode(id, req.user);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/quad/disable')
+  async disableQuadMode(@Request() req, @Param('id') id: string) {
+    return this.devicesService.disableQuadMode(id, req.user);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Post(':id/play')
   async play(
     @Request() req,
@@ -66,9 +80,29 @@ export class DevicesController {
   }
 
   @UseGuards(AuthGuard('jwt'))
+  @Post(':id/quad/play')
+  async playQuadrant(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() command: PlayQuadrantCommandDto,
+  ) {
+    return this.devicesService.playQuadrant(id, req.user, command);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
   @Post(':id/stop')
   async stop(@Request() req, @Param('id') id: string) {
     return this.devicesService.stop(id, req.user);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/quad/stop/:quadrant')
+  async stopQuadrant(
+    @Request() req,
+    @Param('id') id: string,
+    @Param('quadrant', ParseIntPipe) quadrant: number,
+  ) {
+    return this.devicesService.stopQuadrant(id, req.user, quadrant);
   }
 
   @UseGuards(AuthGuard('jwt'))

@@ -5,6 +5,9 @@ export const mockDevices: Device[] = [
     id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
     deviceCode: 'X4K7N9P2QR',
     nickname: 'Living Room TV',
+    layoutMode: 'single',
+    activeChannelId: null,
+    activeQuadrants: [],
     userId: 'user-1',
     createdAt: '2023-10-01T10:00:00Z',
     updatedAt: '2023-10-01T10:00:00Z'
@@ -13,6 +16,12 @@ export const mockDevices: Device[] = [
     id: 'a12bc21d-48dd-5483-b678-1f13c3d4e580',
     deviceCode: 'L9M2N3P4Q5',
     nickname: null,
+    layoutMode: 'quad',
+    activeChannelId: null,
+    activeQuadrants: [
+      { quadrant: 0, channelId: 'c1' },
+      { quadrant: 2, channelId: 'c3' }
+    ],
     userId: 'user-1',
     createdAt: '2023-10-02T11:30:00Z',
     updatedAt: '2023-10-02T11:30:00Z'
@@ -21,6 +30,9 @@ export const mockDevices: Device[] = [
     id: 'b23cd32e-59ee-6594-c789-2g24d4e5f691',
     deviceCode: 'R8S1T2U3V4',
     nickname: null,
+    layoutMode: 'single',
+    activeChannelId: null,
+    activeQuadrants: [],
     userId: 'user-1',
     createdAt: '2023-10-03T14:15:00Z',
     updatedAt: '2023-10-03T14:15:00Z'

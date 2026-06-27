@@ -33,6 +33,6 @@ export class M3uController {
     }
     const content = Buffer.concat(chunks).toString('utf-8');
 
-    return this.m3uService.importFile(req.user as any, content);
+    return this.m3uService.importFile(req.user, content);
   }
 }

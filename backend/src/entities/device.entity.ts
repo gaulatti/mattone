@@ -10,6 +10,11 @@ import {
 } from 'typeorm';
 import { User } from './user.entity';
 
+export interface ActiveQuadrant {
+  quadrant: number;
+  channelId: string;
+}
+
 @Entity('devices')
 export class Device {
   @PrimaryGeneratedColumn('uuid')
@@ -29,6 +34,21 @@ export class Device {
 
   @Column({ name: 'active_channel_id', type: 'uuid', nullable: true })
   activeChannelId: string | null;
+
+  @Column({
+    name: 'layout_mode',
+    type: 'enum',
+    enum: ['single', 'quad'],
+    default: 'single',
+  })
+  layoutMode: 'single' | 'quad';
+
+  @Column({
+    name: 'active_quadrants',
+    type: 'jsonb',
+    default: () => "'[]'",
+  })
+  activeQuadrants: ActiveQuadrant[];
 
   @Column({ name: 'nickname', nullable: true, type: 'varchar' })
   nickname: string | null;

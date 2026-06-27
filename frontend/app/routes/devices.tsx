@@ -1,8 +1,18 @@
 import { useState } from 'react';
 import { AlertDialog, Button, Card, Empty, LoadingSpinner, SectionHeader } from '@gaulatti/bleecker';
 import type { Device } from '../types';
-import { useDevices, useAddDevice, useDeleteDevice, useUpdateDevice, useStopDevice, useCallsignDevice } from '../services/queries/useDevices';
-import { Pencil, Check, X, Square, Radio } from 'lucide-react';
+import {
+  useDevices,
+  useAddDevice,
+  useDeleteDevice,
+  useUpdateDevice,
+  useStopDevice,
+  useCallsignDevice,
+  useEnableQuadMode,
+  useDisableQuadMode,
+  useStopQuadrant
+} from '../services/queries/useDevices';
+import { Pencil, Check, X, Square, Radio, LayoutGrid, Monitor } from 'lucide-react';
 
 export default function Devices() {
   const [newDeviceCode, setNewDeviceCode] = useState('');
@@ -16,6 +26,9 @@ export default function Devices() {
   const updateDevice = useUpdateDevice();
   const stopDevice = useStopDevice();
   const callsignDevice = useCallsignDevice();
+  const enableQuadMode = useEnableQuadMode();
+  const disableQuadMode = useDisableQuadMode();
+  const stopQuadrant = useStopQuadrant();
 
   const handleDelete = (device: Device) => {
     setDevicePendingDelete(device);
@@ -65,6 +78,18 @@ export default function Devices() {
 
   const handleCallsign = (device: Device) => {
     callsignDevice.mutate(device.id);
+  };
+
+  const handleToggleQuadMode = (device: Device) => {
+    if (device.layoutMode === 'quad') {
+      disableQuadMode.mutate(device.id);
+    } else {
+      enableQuadMode.mutate(device.id);
+    }
+  };
+
+  const handleStopQuadrant = (device: Device, quadrant: number) => {
+    stopQuadrant.mutate({ id: device.id, quadrant });
   };
 
   if (isLoading) {
@@ -172,6 +197,38 @@ export default function Devices() {
                         <p>Registered on {new Date(device.createdAt).toLocaleDateString()}</p>
                       </div>
                     </div>
+                    {device.layoutMode === 'quad' && (
+                      <div className='mt-3'>
+                        <div className='inline-flex items-center gap-1.5 rounded-full border border-sand/20 dark:border-sand/30 bg-sand/5 dark:bg-sand/10 px-2.5 py-1'>
+                          <LayoutGrid size={12} className='text-sea dark:text-accent-blue' />
+                          <span className='text-xs font-medium text-text-secondary dark:text-text-secondary'>
+                            Quad Mode — {device.activeQuadrants.length}/4 active
+                          </span>
+                        </div>
+                        {device.activeQuadrants.length > 0 && (
+                          <div className='mt-2 flex flex-wrap gap-1.5'>
+                            {[0, 1, 2, 3].map((q) => {
+                              const active = device.activeQuadrants.find((a) => a.quadrant === q);
+                              return (
+                                <button
+                                  key={q}
+                                  onClick={() => active && handleStopQuadrant(device, q)}
+                                  disabled={!active || stopQuadrant.isPending}
+                                  title={active ? `Stop quadrant ${q + 1}` : `Quadrant ${q + 1} empty`}
+                                  className={`flex h-7 w-7 items-center justify-center rounded-md text-xs font-medium transition-colors ${
+                                    active
+                                      ? 'bg-sea/10 text-sea hover:bg-sea/20 dark:bg-accent-blue/10 dark:text-accent-blue dark:hover:bg-accent-blue/20'
+                                      : 'bg-sand/10 text-text-secondary/50 dark:bg-sand/10 dark:text-text-secondary/50'
+                                  }`}
+                                >
+                                  {q + 1}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className='ml-5 flex-shrink-0 flex items-center gap-2'>
@@ -196,6 +253,17 @@ export default function Devices() {
                   >
                     <Square size={14} />
                     Stop
+                  </Button>
+                  <Button
+                    variant={device.layoutMode === 'quad' ? 'destructive' : 'secondary'}
+                    size='sm'
+                    onClick={() => handleToggleQuadMode(device)}
+                    disabled={enableQuadMode.isPending || disableQuadMode.isPending}
+                    title={device.layoutMode === 'quad' ? 'Exit quad mode and stop all streams' : 'Enter quad mode'}
+                    className='gap-1 rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20'
+                  >
+                    <Monitor size={14} />
+                    {device.layoutMode === 'quad' ? 'Exit Quad' : 'Quad Mode'}
                   </Button>
                   <Button
                     variant='destructive'
