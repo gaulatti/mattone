@@ -1,13 +1,15 @@
 export interface ActiveQuadrant {
   quadrant: number;
   channelId: string;
+  channelName?: string;
+  channelLogo?: string;
 }
 
 export interface Device {
   id: string;
   deviceCode: string;
   nickname: string | null;
-  layoutMode: 'single' | 'quad';
+  layoutMode: "single" | "quad";
   activeChannelId: string | null;
   activeQuadrants: ActiveQuadrant[];
   userId: string;

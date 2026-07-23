@@ -1,14 +1,14 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../api';
-import type { Device, Channel } from '../../types';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { api } from "../api";
+import type { Device, Channel } from "../../types";
 
 export const useDevices = () => {
   return useQuery({
-    queryKey: ['devices'],
+    queryKey: ["devices"],
     queryFn: async () => {
-      const { data } = await api.get<Device[]>('/devices');
+      const { data } = await api.get<Device[]>("/devices");
       return data;
-    }
+    },
   });
 };
 
@@ -16,12 +16,12 @@ export const useAddDevice = () => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (deviceCode: string) => {
-      const { data } = await api.post<Device>('/devices', { deviceCode });
+      const { data } = await api.post<Device>("/devices", { deviceCode });
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
   });
 };
 
@@ -33,8 +33,8 @@ export const useUpdateDevice = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
   });
 };
 
@@ -45,8 +45,8 @@ export const useDeleteDevice = () => {
       await api.delete(`/devices/${id}`);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
   });
 };
 
@@ -58,8 +58,8 @@ export const useEnableQuadMode = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
   });
 };
 
@@ -71,25 +71,30 @@ export const useDisableQuadMode = () => {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['devices'] });
-    }
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
   });
 };
 
 export const usePlayDevice = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, channel }: { id: string; channel: Channel }) => {
       await api.post(`/devices/${id}/play`, { channelId: channel.id });
-    }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
   });
 };
 
 export const usePlayQuadrant = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({
       id,
       channel,
-      quadrant
+      quadrant,
     }: {
       id: string;
       channel: Channel;
@@ -97,10 +102,13 @@ export const usePlayQuadrant = () => {
     }) => {
       const { data } = await api.post<{ status: string; quadrant: number }>(
         `/devices/${id}/quad/play`,
-        { channelId: channel.id, quadrant }
+        { channelId: channel.id, quadrant },
       );
       return data;
-    }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
   });
 };
 
@@ -108,15 +116,19 @@ export const useStopDevice = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       await api.post(`/devices/${id}/stop`);
-    }
+    },
   });
 };
 
 export const useStopQuadrant = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async ({ id, quadrant }: { id: string; quadrant: number }) => {
       await api.post(`/devices/${id}/quad/stop/${quadrant}`);
-    }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
   });
 };
 
@@ -124,7 +136,6 @@ export const useCallsignDevice = () => {
   return useMutation({
     mutationFn: async (id: string) => {
       await api.post(`/devices/${id}/callsign`);
-    }
+    },
   });
 };
-

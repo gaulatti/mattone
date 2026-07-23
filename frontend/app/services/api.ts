@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { fetchAuthSession, signOut } from 'aws-amplify/auth';
+import { reportFrontendEvent } from './telemetry';
 
 // Create axios instance
 export const api = axios.create({
@@ -32,7 +33,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status ?? 0;
+    const url = error.config?.url ?? 'unknown';
+    const method = error.config?.method?.toUpperCase() ?? 'UNKNOWN';
+
+    reportFrontendEvent('api_error', url, {
+      method,
+      status,
+      message: error.message,
+    });
+
+    if (status === 401) {
       console.warn('API returned 401 Unauthorized. Token might be invalid or expired.');
       // Optional: Logic to refresh token could go here
     }

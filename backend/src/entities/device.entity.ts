@@ -13,6 +13,8 @@ import { User } from './user.entity';
 export interface ActiveQuadrant {
   quadrant: number;
   channelId: string;
+  channelName?: string;
+  channelLogo?: string;
 }
 
 @Entity('devices')

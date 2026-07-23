@@ -27,6 +27,7 @@ import AuthListener from './components/common/AuthListener';
 import { useAuthStatus, useLogout } from './hooks/useAuth';
 import { useSelectedDevice } from './hooks/useSelectedDevice';
 import { useDevices } from './services/queries/useDevices';
+import { usePageViewTelemetry } from './hooks/useTelemetry';
 import { getStore } from './state';
 
 const GITHUB_REPO_URL = 'https://github.com/gaulatti/mattone';
@@ -204,6 +205,7 @@ export function Layout({ children }: { children: ReactNode }) {
 }
 
 export default function App() {
+  usePageViewTelemetry();
   const [queryClient] = useState(
     () =>
       new QueryClient({

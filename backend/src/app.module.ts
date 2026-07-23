@@ -7,6 +7,7 @@ import { ChannelsModule } from './channels/channels.module';
 import { ChannelGroupsModule } from './channel-groups/channel-groups.module';
 import { M3uModule } from './m3u/m3u.module';
 import { SseModule } from './sse/sse.module';
+import { TelemetryModule } from './telemetry/telemetry.module';
 import { User } from './entities/user.entity';
 import { Device } from './entities/device.entity';
 import { Channel } from './entities/channel.entity';
@@ -38,6 +39,7 @@ import { ChannelGroup } from './entities/channel-group.entity';
     ChannelGroupsModule,
     M3uModule,
     SseModule,
+    TelemetryModule,
   ],
   controllers: [],
   providers: [],

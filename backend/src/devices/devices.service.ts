@@ -135,7 +135,41 @@ export class DevicesService implements OnModuleInit {
   }
 
   async findAll(user: User): Promise<Device[]> {
-    return this.deviceRepository.find({ where: { userId: user.id } }); // Assuming userId usage
+    const devices = await this.deviceRepository.find({
+      where: { userId: user.id },
+    });
+    const channelIds = [
+      ...new Set(
+        devices.flatMap((device) =>
+          device.activeQuadrants.map((active) => active.channelId),
+        ),
+      ),
+    ];
+
+    if (channelIds.length === 0) {
+      return devices;
+    }
+
+    const channels = await this.channelRepository
+      .createQueryBuilder('channel')
+      .where('channel.id IN (:...channelIds)', { channelIds })
+      .andWhere('channel.userId = :userId', { userId: user.id })
+      .getMany();
+    const channelsById = new Map(
+      channels.map((channel) => [channel.id, channel]),
+    );
+
+    return devices.map((device) => ({
+      ...device,
+      activeQuadrants: device.activeQuadrants.map((active) => {
+        const channel = channelsById.get(active.channelId);
+        return {
+          ...active,
+          channelName: channel?.tvgName ?? active.channelName,
+          channelLogo: channel?.tvgLogo ?? active.channelLogo,
+        };
+      }),
+    }));
   }
 
   async update(
@@ -269,10 +303,15 @@ export class DevicesService implements OnModuleInit {
       }
     }
 
-    // Replace any existing channel in the target quadrant
+    // Keep the persisted state current before issuing the replacement commands.
     device.activeQuadrants = [
       ...device.activeQuadrants.filter((q) => q.quadrant !== quadrant),
-      { quadrant, channelId: channel.id },
+      {
+        quadrant,
+        channelId: channel.id,
+        channelName: channel.tvgName,
+        channelLogo: channel.tvgLogo,
+      },
     ];
     await this.deviceRepository.save(device);
 
@@ -285,6 +324,12 @@ export class DevicesService implements OnModuleInit {
       quadrant,
     };
 
+    // Always stop the chosen slot first. This releases any prior stream before
+    // the next play command arrives, including when the UI considers it empty.
+    this.sseService.sendCommand(device.deviceCode, {
+      type: 'stop',
+      quadrant,
+    });
     const sent = this.sseService.sendCommand(device.deviceCode, payload);
     return { status: sent ? 'command sent' : 'queued', quadrant };
   }

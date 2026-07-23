@@ -122,3 +122,51 @@ The M3U parser extracts:
 - Stream URL
 
 Supports standard M3U format with EXTINF metadata.
+
+## Telemetry & Monitoring
+
+Celesti reports playback, bitrate, error, and decoder metrics to Prometheus.
+
+### Architecture
+
+- **Backend** exposes a `/metrics` endpoint for Prometheus and a `/telemetry` endpoint that all clients (web, iOS, Android) push events to.
+- **Frontend / Devices** push lightweight telemetry events to `/telemetry`. Devices do not need to be reachable by Prometheus directly.
+- **Prometheus** scrapes the backend `/metrics` endpoint.
+- **Grafana** visualizes the metrics with a pre-loaded dashboard.
+
+### Metrics
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `celesti_playback_starts_total` | Counter | Playback start events by platform/layout |
+| `celesti_playback_stops_total` | Counter | Playback stop events by platform/layout |
+| `celesti_playback_errors_total` | Counter | Playback errors by platform/error code |
+| `celesti_playback_failures_total` | Counter | Unrecoverable playback failures by reason |
+| `celesti_playback_bitrate_bps` | Gauge | Current configured bitrate per device/stream |
+| `celesti_buffering_events_total` | Counter | Buffering start/end transitions |
+| `celesti_buffering_duration_seconds` | Histogram | Duration of buffering events |
+| `celesti_decoder_initializations_total` | Counter | Decoder initializations by type (hardware/software) and name |
+| `celesti_decoder_init_results_total` | Counter | Decoder initialization attempts by platform/type/success/layout |
+| `celesti_active_decoders` | Gauge | Simultaneous hardware/software decoders reported per device |
+| `celesti_sse_active_connections` | Gauge | Active SSE device connections |
+| `celesti_api_requests_total` | Counter | API requests by method/route/status |
+| `celesti_api_request_duration_seconds` | Histogram | API request latency |
+| `celesti_frontend_events_total` | Counter | Frontend events (page views, API errors) |
+
+### Running Monitoring
+
+With Docker Compose:
+
+```bash
+docker compose up -d prometheus
+```
+
+- Prometheus UI: http://localhost:9090
+
+You can point your own Grafana to this Prometheus instance (http://localhost:9090) and build dashboards using the `celesti_*` metrics.
+
+### Decoder Detection
+
+- **iOS**: `AVPlayer` is reported as hardware; `KSPlayer` (FFmpeg) is reported as software.
+- **Android**: ExoPlayer decoder names containing `OMX` or `c2.` are reported as hardware; names containing `ffmpeg` or `lib` are reported as software.
+- **Web**: reported by the browser/player implementation if instrumentation is added.

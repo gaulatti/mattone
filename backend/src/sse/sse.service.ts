@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { Subject, Observable } from 'rxjs';
 import { filter, map } from 'rxjs/operators';
+import { TelemetryService } from '../telemetry/telemetry.service';
 
 export interface SSEMessage {
   type: string;
@@ -20,6 +21,8 @@ export class SseService implements OnModuleDestroy {
   private readonly activeConnections = new Set<string>();
   public readonly connectionSubject = new Subject<string>();
 
+  constructor(private readonly telemetryService: TelemetryService) {}
+
   onModuleDestroy() {
     this.messageSubject.complete();
     this.disconnectSubject.complete();
@@ -37,6 +40,7 @@ export class SseService implements OnModuleDestroy {
 
     this.activeConnections.add(deviceCode);
     this.logger.log(`Device connected: ${deviceCode}`);
+    this.telemetryService.recordConnection(deviceCode, 'unknown', true);
     this.connectionSubject.next(deviceCode);
 
     // Return filtered message stream for this device
@@ -52,6 +56,7 @@ export class SseService implements OnModuleDestroy {
       map(() => {
         this.activeConnections.delete(deviceCode);
         this.logger.log(`Device disconnected: ${deviceCode}`);
+        this.telemetryService.recordConnection(deviceCode, 'unknown', false);
         return undefined;
       }),
     );
