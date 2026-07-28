@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Channel } from '../entities/channel.entity';
@@ -70,5 +70,13 @@ export class ChannelsService {
       .getRawMany();
 
     return result.map((r) => r.group_title).filter((g) => g);
+  }
+
+  async getPlaybackSource(user: User, id: string): Promise<{ streamUrl: string }> {
+    const channel = await this.channelRepository.findOne({ where: { id, userId: user.id } });
+    if (!channel) {
+      throw new NotFoundException('Channel not found');
+    }
+    return { streamUrl: channel.streamUrl };
   }
 }

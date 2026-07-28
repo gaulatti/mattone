@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import {
   Avatar,
   Button,
@@ -25,6 +25,10 @@ import { useSelectedDevice } from "../hooks/useSelectedDevice";
 import { useDebounce } from "../hooks/useDebounce";
 import { Radio, Send } from "lucide-react";
 
+const InAppStreamModal = lazy(
+  () => import("../components/common/InAppStreamModal"),
+);
+
 const PAGE_SIZE = 50;
 
 export default function Channels() {
@@ -35,6 +39,7 @@ export default function Channels() {
     useState<Channel | null>(null);
   const [modalDeviceId, setModalDeviceId] = useState<string>("");
   const [modalQuadrant, setModalQuadrant] = useState<string>("");
+  const [activeChannelForLocalPlay, setActiveChannelForLocalPlay] = useState<Channel | null>(null);
 
   const { selectedDeviceId, setSelectedDeviceId } = useSelectedDevice();
 
@@ -216,6 +221,14 @@ export default function Channels() {
                 )}
                 <Button
                   size="sm"
+                  variant="secondary"
+                  onClick={() => setActiveChannelForLocalPlay(channel)}
+                  className="rounded-lg border-sand/30 bg-white py-1.5 text-xs dark:border-sand/50 dark:bg-sand/10"
+                >
+                  Play here
+                </Button>
+                <Button
+                  size="sm"
                   onClick={() => handlePlayClick(channel)}
                   className="rounded-lg py-1.5 text-xs"
                 >
@@ -374,6 +387,14 @@ export default function Channels() {
           </Button>
         </div>
       </Modal>
+      {activeChannelForLocalPlay ? (
+        <Suspense fallback={null}>
+          <InAppStreamModal
+            channel={activeChannelForLocalPlay}
+            onClose={() => setActiveChannelForLocalPlay(null)}
+          />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

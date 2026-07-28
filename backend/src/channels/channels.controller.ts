@@ -6,6 +6,7 @@ import {
   Request,
   Post,
   Body,
+  Param,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ChannelsService } from './channels.service';
@@ -35,5 +36,10 @@ export class ChannelsController {
   @Get('groups')
   async getGroups(@Request() req) {
     return this.channelsService.getGroups(req.user);
+  }
+
+  @Get(':id/playback')
+  async getPlaybackSource(@Request() req, @Param('id') id: string) {
+    return this.channelsService.getPlaybackSource(req.user, id);
   }
 }
