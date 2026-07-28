@@ -10,6 +10,8 @@ export const api = axios.create({
   }
 });
 
+export const apiUrl = (path: string): string => api.getUri({ url: path });
+
 // Request interceptor - add auth token
 api.interceptors.request.use(
   async (config) => {

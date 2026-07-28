@@ -24,6 +24,7 @@ import {
 import { useSelectedDevice } from "../hooks/useSelectedDevice";
 import { useDebounce } from "../hooks/useDebounce";
 import { Radio, Send } from "lucide-react";
+import { apiUrl } from "../services/api";
 
 const InAppStreamModal = lazy(
   () => import("../components/common/InAppStreamModal"),
@@ -188,7 +189,7 @@ export default function Channels() {
               className="px-4 py-4 flex items-center sm:px-6 hover:bg-sand/5 dark:hover:bg-sand/10 transition-colors"
             >
               <Avatar
-                src={channel.tvgLogo}
+                src={channel.tvgLogo ? apiUrl(`/channels/${channel.id}/logo`) : undefined}
                 fallback={channel.tvgName}
                 size="md"
               />

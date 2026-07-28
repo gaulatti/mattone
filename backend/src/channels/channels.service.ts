@@ -1,6 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadGatewayException, Injectable, NotFoundException } from '@nestjs/common';
+import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { lastValueFrom } from 'rxjs';
+import { randomUUID } from 'crypto';
 import { Channel } from '../entities/channel.entity';
 import { User } from '../entities/user.entity';
 import { ChannelResponseDto } from './dto/channel-response.dto';
@@ -8,7 +11,10 @@ import { CreateChannelDto } from './dto/create-channel.dto';
 
 @Injectable()
 export class ChannelsService {
+  private readonly playbackTickets = new Map<string, { channelId: string; userId: string; expiresAt: number }>();
+
   constructor(
+    private readonly httpService: HttpService,
     @InjectRepository(Channel)
     private channelRepository: Repository<Channel>,
   ) {}
@@ -72,11 +78,108 @@ export class ChannelsService {
     return result.map((r) => r.group_title).filter((g) => g);
   }
 
-  async getPlaybackSource(user: User, id: string): Promise<{ streamUrl: string }> {
+  async getPlaybackSource(user: User, id: string): Promise<{ streamUrl: string; format: 'hls' | 'ts' | 'unknown' }> {
     const channel = await this.channelRepository.findOne({ where: { id, userId: user.id } });
     if (!channel) {
       throw new NotFoundException('Channel not found');
     }
-    return { streamUrl: channel.streamUrl };
+    this.removeExpiredPlaybackTickets();
+    const ticket = randomUUID();
+    this.playbackTickets.set(ticket, {
+      channelId: channel.id,
+      userId: user.id,
+      expiresAt: Date.now() + 30 * 60 * 1000,
+    });
+    return {
+      streamUrl: `/channels/playback/${ticket}`,
+      format: this.getPlaybackFormat(channel.streamUrl),
+    };
+  }
+
+  async getPlaybackStream(ticket: string, target?: string) {
+    const playbackTicket = this.playbackTickets.get(ticket);
+    if (!playbackTicket || playbackTicket.expiresAt < Date.now()) {
+      this.playbackTickets.delete(ticket);
+      throw new NotFoundException('Playback session expired');
+    }
+
+    const channel = await this.channelRepository.findOne({
+      where: { id: playbackTicket.channelId, userId: playbackTicket.userId },
+    });
+    if (!channel) throw new NotFoundException('Channel not found');
+
+    const source = this.validateRemoteUrl(target ?? channel.streamUrl);
+    try {
+      const response = await lastValueFrom(
+        this.httpService.get(source, {
+          responseType: 'stream',
+          timeout: 15_000,
+          maxRedirects: 3,
+          headers: { Range: 'bytes=0-' },
+        }),
+      );
+      return { source, response };
+    } catch {
+      throw new BadGatewayException('Unable to reach stream source');
+    }
+  }
+
+  async getLogoStream(id: string) {
+    const channel = await this.channelRepository.findOne({ where: { id } });
+    if (!channel?.tvgLogo) throw new NotFoundException('Channel logo not found');
+
+    try {
+      return await lastValueFrom(
+        this.httpService.get(this.validateRemoteUrl(channel.tvgLogo), {
+          responseType: 'stream',
+          timeout: 10_000,
+          maxRedirects: 3,
+        }),
+      );
+    } catch {
+      throw new BadGatewayException('Unable to reach channel logo');
+    }
+  }
+
+  isPlaylist(source: string, contentType?: string): boolean {
+    return source.toLowerCase().includes('.m3u8') || Boolean(contentType?.includes('mpegurl'));
+  }
+
+  private getPlaybackFormat(source: string): 'hls' | 'ts' | 'unknown' {
+    const path = source.split(/[?#]/)[0].toLowerCase();
+    if (path.endsWith('.m3u8')) return 'hls';
+    if (path.endsWith('.ts')) return 'ts';
+    return 'unknown';
+  }
+
+  rewritePlaylist(manifest: string, source: string, ticket: string): string {
+    const proxied = (value: string) => `/channels/playback/${ticket}?url=${encodeURIComponent(new URL(value, source).toString())}`;
+    return manifest
+      .split(/\r?\n/)
+      .map((line) => {
+        if (!line) return line;
+        if (!line.startsWith('#')) return proxied(line);
+        return line.replace(/URI="([^"]+)"/g, (_match, uri: string) => `URI="${proxied(uri)}"`);
+      })
+      .join('\n');
+  }
+
+  private validateRemoteUrl(value: string): string {
+    let url: URL;
+    try {
+      url = new URL(value);
+    } catch {
+      throw new BadGatewayException('Invalid remote URL');
+    }
+    if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password) {
+      throw new BadGatewayException('Unsupported remote URL');
+    }
+    return url.toString();
+  }
+
+  private removeExpiredPlaybackTickets(): void {
+    for (const [ticket, value] of this.playbackTickets) {
+      if (value.expiresAt < Date.now()) this.playbackTickets.delete(ticket);
+    }
   }
 }

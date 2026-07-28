@@ -5,6 +5,7 @@ import { useChannelGroups, useCreateChannelGroup, useDeleteChannelGroup, useAddC
 import { useChannels, useCreateChannel } from '../services/queries/useChannels';
 import { Plus, Trash2, PlusCircle, MinusCircle, ChevronDown, ChevronRight } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
+import { apiUrl } from '../services/api';
 
 export default function Groups() {
   const [newGroupName, setNewGroupName] = useState('');
@@ -220,7 +221,7 @@ export default function Groups() {
                         (group.channels ?? []).map((channel: Channel) => (
                           <li key={channel.id} className='px-8 py-3 flex items-center justify-between hover:bg-sand/10 dark:hover:bg-sand/10 transition-colors'>
                             <div className='flex items-center gap-3 min-w-0'>
-                              <Avatar src={channel.tvgLogo} fallback={channel.tvgName} size='sm' />
+                              <Avatar src={channel.tvgLogo ? apiUrl(`/channels/${channel.id}/logo`) : undefined} fallback={channel.tvgName} size='sm' />
                               <div className='min-w-0'>
                                 <p className='text-sm text-text-primary dark:text-text-primary truncate'>{channel.tvgName}</p>
                                 <p className='text-xs text-text-secondary dark:text-text-secondary'>{channel.groupTitle || 'Uncategorized'}</p>
@@ -330,7 +331,7 @@ export default function Groups() {
                 variant='ghost'
                 className='w-full justify-start gap-3 rounded-none px-4 py-2.5 hover:translate-y-0'
               >
-                <Avatar src={channel.tvgLogo} fallback={channel.tvgName} size='sm' className='h-7 w-7 text-[10px]' />
+                <Avatar src={channel.tvgLogo ? apiUrl(`/channels/${channel.id}/logo`) : undefined} fallback={channel.tvgName} size='sm' className='h-7 w-7 text-[10px]' />
                 <div className='min-w-0'>
                   <p className='text-sm text-text-primary dark:text-text-primary truncate'>{channel.tvgName}</p>
                   <p className='text-xs text-text-secondary dark:text-text-secondary'>{channel.groupTitle || 'Uncategorized'}</p>

@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { HttpModule } from '@nestjs/axios';
 import { ChannelsController } from './channels.controller';
 import { ChannelsService } from './channels.service';
 import { Channel } from '../entities/channel.entity';
 import { User } from '../entities/user.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Channel, User])],
+  imports: [TypeOrmModule.forFeature([Channel, User]), HttpModule],
   controllers: [ChannelsController],
   providers: [ChannelsService],
 })
