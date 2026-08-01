@@ -123,5 +123,9 @@ export const mockChannels: Channel[] = [
 ];
 
 export const mockImportResult: ImportResult = {
-  count: 247
+  count: 247,
+  created: 247,
+  updated: 12,
+  unchanged: 88,
+  total: 347
 };

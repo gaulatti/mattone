@@ -36,5 +36,30 @@ export interface Channel {
 }
 
 export interface ImportResult {
+  /** New channels created. */
   count: number;
+  created: number;
+  /** Existing channels whose metadata was refreshed from the playlist. */
+  updated: number;
+  unchanged: number;
+  /** Distinct stream URLs found in the playlist. */
+  total: number;
+}
+
+export type M3uSourceStatus = "pending" | "success" | "error";
+
+export interface M3uSource {
+  id: string;
+  url: string;
+  autoRefresh: boolean;
+  refreshIntervalMinutes: number;
+  lastSyncedAt: string | null;
+  lastStatus: M3uSourceStatus;
+  lastError: string | null;
+  lastCreatedCount: number;
+  lastUpdatedCount: number;
+  lastChannelCount: number;
+  userId: string;
+  createdAt: string;
+  updatedAt: string;
 }

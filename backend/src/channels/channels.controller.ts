@@ -14,6 +14,11 @@ import type { FastifyReply } from 'fastify';
 import { ChannelsService } from './channels.service';
 import { CreateChannelDto } from './dto/create-channel.dto';
 
+const logoFallback = (name: string) => {
+  const label = name.slice(0, 2).toUpperCase().replace(/[&<>"']/g, '');
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><rect width="48" height="48" rx="24" fill="#2c5784"/><text x="24" y="29" fill="#f9f6f2" font-family="Arial,sans-serif" font-size="16" font-weight="700" text-anchor="middle">${label}</text></svg>`;
+};
+
 @Controller('channels')
 export class ChannelsController {
   constructor(private readonly channelsService: ChannelsService) {}
@@ -63,6 +68,10 @@ export class ChannelsController {
     reply.raw.writeHead(response.status, {
       'Content-Type': contentType ?? 'application/octet-stream',
       'Cache-Control': 'no-store',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Expose-Headers': 'Content-Length, Content-Range, Accept-Ranges',
+      ...(response.headers['accept-ranges'] ? { 'Accept-Ranges': response.headers['accept-ranges'] } : {}),
+      ...(response.headers['content-range'] ? { 'Content-Range': response.headers['content-range'] } : {}),
       ...(response.headers['content-length'] ? { 'Content-Length': response.headers['content-length'] } : {}),
     });
     response.data.pipe(reply.raw);
@@ -70,11 +79,19 @@ export class ChannelsController {
 
   @Get(':id/logo')
   async proxyLogo(@Param('id') id: string, @Res() reply: FastifyReply) {
-    const response = await this.channelsService.getLogoStream(id);
+    const { response, fallbackName } = await this.channelsService.getLogoStream(id);
+    if (!response) {
+      return reply
+        .header('Cache-Control', 'public, max-age=3600')
+        .header('Access-Control-Allow-Origin', '*')
+        .type('image/svg+xml')
+        .send(logoFallback(fallbackName ?? ''));
+    }
     reply.hijack();
     reply.raw.writeHead(response.status, {
       'Content-Type': response.headers['content-type'] ?? 'image/*',
       'Cache-Control': 'public, max-age=86400',
+      'Access-Control-Allow-Origin': '*',
       ...(response.headers['content-length'] ? { 'Content-Length': response.headers['content-length'] } : {}),
     });
     response.data.pipe(reply.raw);

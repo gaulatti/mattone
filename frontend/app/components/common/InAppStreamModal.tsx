@@ -36,15 +36,15 @@ function StreamPlayer({ source, format }: { source: string; format: 'hls' | 'ts'
       transportPlayer = mpegts.createPlayer({ type: 'mpegts', isLive: true, url: source });
       transportPlayer.attachMediaElement(video);
       transportPlayer.load();
-      void transportPlayer.play();
+      void transportPlayer.play().catch(() => undefined);
     } else if ((format === 'hls' || isHls(source)) && Hls.isSupported()) {
       hls = new Hls({ lowLatencyMode: true });
       hls.loadSource(source);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => void video.play());
+      hls.on(Hls.Events.MANIFEST_PARSED, () => void video.play().catch(() => undefined));
     } else {
       video.src = source;
-      void video.play();
+      void video.play().catch(() => undefined);
     }
 
     return () => {

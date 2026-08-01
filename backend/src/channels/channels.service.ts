@@ -129,15 +129,16 @@ export class ChannelsService {
     if (!channel?.tvgLogo) throw new NotFoundException('Channel logo not found');
 
     try {
-      return await lastValueFrom(
+      const response = await lastValueFrom(
         this.httpService.get(this.validateRemoteUrl(channel.tvgLogo), {
           responseType: 'stream',
           timeout: 10_000,
           maxRedirects: 3,
         }),
       );
+      return { response, fallbackName: null };
     } catch {
-      throw new BadGatewayException('Unable to reach channel logo');
+      return { response: null, fallbackName: channel.tvgName };
     }
   }
 

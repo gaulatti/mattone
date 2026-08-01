@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './auth/auth.module';
 import { DevicesModule } from './devices/devices.module';
 import { ChannelsModule } from './channels/channels.module';
@@ -12,6 +13,7 @@ import { User } from './entities/user.entity';
 import { Device } from './entities/device.entity';
 import { Channel } from './entities/channel.entity';
 import { ChannelGroup } from './entities/channel-group.entity';
+import { M3uSource } from './entities/m3u-source.entity';
 
 @Module({
   imports: [
@@ -28,11 +30,12 @@ import { ChannelGroup } from './entities/channel-group.entity';
         username: configService.get<string>('DB_USER', 'postgres'),
         password: configService.get<string>('DB_PASS'),
         database: configService.get<string>('DB_NAME', 'mattone'),
-        entities: [User, Device, Channel, ChannelGroup],
+        entities: [User, Device, Channel, ChannelGroup, M3uSource],
         synchronize: true, // Auto-migrate dev only
       }),
       inject: [ConfigService],
     }),
+    ScheduleModule.forRoot(),
     AuthModule,
     DevicesModule,
     ChannelsModule,

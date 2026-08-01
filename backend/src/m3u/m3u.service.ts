@@ -6,11 +6,33 @@ import {
 } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, In } from 'typeorm';
+import { Repository, DataSource } from 'typeorm';
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity';
 import { Channel } from '../entities/channel.entity';
+import { M3uSource } from '../entities/m3u-source.entity';
 import { User } from '../entities/user.entity';
 import { lastValueFrom } from 'rxjs';
 import { ImportM3uDto } from './dto/import-m3u.dto';
+
+export interface ImportSummary {
+  /** New channels inserted. Kept as `count` for backwards compatibility. */
+  count: number;
+  created: number;
+  updated: number;
+  unchanged: number;
+  /** Distinct stream URLs found in the playlist. */
+  total: number;
+}
+
+/** Metadata mirrored from the playlist onto an already-known stream URL. */
+const METADATA_FIELDS = [
+  'tvgName',
+  'tvgLogo',
+  'groupTitle',
+  'sourceUrl',
+] as const;
+
+const FETCH_TIMEOUT_MS = 60_000;
 
 @Injectable()
 export class M3uService {
@@ -18,48 +40,130 @@ export class M3uService {
 
   constructor(
     private readonly httpService: HttpService,
-    @InjectRepository(Channel)
-    private channelRepository: Repository<Channel>,
+    @InjectRepository(M3uSource)
+    private m3uSourceRepository: Repository<M3uSource>,
     private dataSource: DataSource,
   ) {}
 
-  async import(
-    user: User,
-    importM3uDto: ImportM3uDto,
-  ): Promise<{ count: number }> {
-    const { url } = importM3uDto;
+  async import(user: User, importM3uDto: ImportM3uDto): Promise<ImportSummary> {
+    const { url, autoRefresh, refreshIntervalMinutes } = importM3uDto;
 
+    const source = await this.upsertSource(user.id, {
+      url,
+      autoRefresh,
+      refreshIntervalMinutes,
+    });
+
+    return this.syncSource(source);
+  }
+
+  async importFile(user: User, fileContent: string): Promise<ImportSummary> {
+    const channels = this.parseM3u(fileContent, 'file-upload', user.id);
+    return this.syncChannels(user.id, channels);
+  }
+
+  /**
+   * Re-fetches a registered playlist and mirrors its metadata onto the
+   * user's channels. Sync outcome is recorded on the source itself so the
+   * scheduler and the UI can report on it.
+   */
+  async syncSource(source: M3uSource): Promise<ImportSummary> {
     let content: string;
     try {
-      this.logger.log(`Fetching M3U from ${url} for user ${user.id}`);
-      const response = await lastValueFrom(this.httpService.get(url));
-      content = response.data;
-      this.logger.log(`Fetched ${content.length} bytes`);
+      content = await this.fetch(source.url, source.userId);
     } catch (err) {
-      this.logger.error(`Failed to fetch M3U: ${err.message}`, err.stack);
+      await this.m3uSourceRepository.update(source.id, {
+        lastSyncedAt: new Date(),
+        lastStatus: 'error',
+        lastError: err.message?.slice(0, 500) ?? 'Unknown error',
+      });
       throw new BadRequestException(`Failed to fetch M3U: ${err.message}`);
     }
 
-    const channels = this.parseM3u(content, url, user.id);
-    return this.saveChannels(user, channels);
+    const channels = this.parseM3u(content, source.url, source.userId);
+    const summary = await this.syncChannels(source.userId, channels);
+
+    await this.m3uSourceRepository.update(source.id, {
+      lastSyncedAt: new Date(),
+      lastStatus: 'success',
+      lastError: null,
+      lastCreatedCount: summary.created,
+      lastUpdatedCount: summary.updated,
+      lastChannelCount: summary.total,
+    });
+
+    return summary;
   }
 
-  async importFile(
-    user: User,
-    fileContent: string,
-  ): Promise<{ count: number }> {
-    const channels = this.parseM3u(fileContent, 'file-upload', user.id);
-    return this.saveChannels(user, channels);
+  /** Registers (or refreshes the schedule of) a playlist URL for a user. */
+  async upsertSource(
+    userId: string,
+    options: {
+      url: string;
+      autoRefresh?: boolean;
+      refreshIntervalMinutes?: number;
+    },
+  ): Promise<M3uSource> {
+    const existing = await this.m3uSourceRepository.findOne({
+      where: { userId, url: options.url },
+    });
+
+    if (existing) {
+      if (options.autoRefresh !== undefined) {
+        existing.autoRefresh = options.autoRefresh;
+      }
+      if (options.refreshIntervalMinutes !== undefined) {
+        existing.refreshIntervalMinutes = options.refreshIntervalMinutes;
+      }
+      return this.m3uSourceRepository.save(existing);
+    }
+
+    return this.m3uSourceRepository.save(
+      this.m3uSourceRepository.create({
+        userId,
+        url: options.url,
+        autoRefresh: options.autoRefresh ?? true,
+        refreshIntervalMinutes: options.refreshIntervalMinutes ?? 1440,
+        lastStatus: 'pending',
+      }),
+    );
   }
 
-  private async saveChannels(
-    user: User,
+  private async fetch(url: string, userId: string): Promise<string> {
+    this.logger.log(`Fetching M3U from ${url} for user ${userId}`);
+    const response = await lastValueFrom(
+      this.httpService.get<string>(url, {
+        responseType: 'text',
+        transformResponse: (data: string) => data,
+        timeout: FETCH_TIMEOUT_MS,
+      }),
+    );
+    const content = response.data ?? '';
+    this.logger.log(`Fetched ${content.length} bytes`);
+    return content;
+  }
+
+  /**
+   * Upserts the parsed playlist into the user's channels, keyed by stream URL:
+   * unknown URLs are inserted, known ones have their metadata refreshed from
+   * the playlist instead of being discarded.
+   */
+  private async syncChannels(
+    userId: string,
     channels: Partial<Channel>[],
-  ): Promise<{ count: number }> {
-    this.logger.log(`Parsed ${channels.length} channels for user ${user.id}`);
+  ): Promise<ImportSummary> {
+    this.logger.log(`Parsed ${channels.length} channels for user ${userId}`);
+
+    const summary: ImportSummary = {
+      count: 0,
+      created: 0,
+      updated: 0,
+      unchanged: 0,
+      total: 0,
+    };
 
     if (channels.length === 0) {
-      return { count: 0 };
+      return summary;
     }
 
     const queryRunner = this.dataSource.createQueryRunner();
@@ -67,34 +171,45 @@ export class M3uService {
     await queryRunner.startTransaction();
 
     try {
-      this.logger.log(`Fetching all existing channels for user ${user.id}...`);
+      this.logger.log(`Fetching all existing channels for user ${userId}...`);
 
-      // Fetch only streamUrls to keep memory usage minimal
       const existingChannels = await queryRunner.manager.find(Channel, {
-        where: { userId: user.id },
-        select: ['streamUrl'],
+        where: { userId },
+        select: ['id', 'streamUrl', ...METADATA_FIELDS],
       });
 
-      const existingUrls = new Set(existingChannels.map((c) => c.streamUrl));
-      const payloadUrls = new Set<string>();
+      const existingByUrl = new Map(
+        existingChannels.map((channel) => [channel.streamUrl, channel]),
+      );
+      const seenUrls = new Set<string>();
 
       const toInsert: Partial<Channel>[] = [];
+      const toUpdate: {
+        id: string;
+        changes: QueryDeepPartialEntity<Channel>;
+      }[] = [];
 
-      // Deduplicate against the database AND within the uploaded list itself
+      // Deduplicate within the payload itself; upsert against the database
       for (const channel of channels) {
-        if (!channel.streamUrl) continue;
+        if (!channel.streamUrl || seenUrls.has(channel.streamUrl)) continue;
+        seenUrls.add(channel.streamUrl);
 
-        if (
-          !existingUrls.has(channel.streamUrl) &&
-          !payloadUrls.has(channel.streamUrl)
-        ) {
+        const existing = existingByUrl.get(channel.streamUrl);
+        if (!existing) {
           toInsert.push(channel);
-          payloadUrls.add(channel.streamUrl);
+          continue;
+        }
+
+        const changes = this.diffMetadata(existing, channel);
+        if (Object.keys(changes).length > 0) {
+          toUpdate.push({ id: existing.id, changes });
+        } else {
+          summary.unchanged++;
         }
       }
 
       this.logger.log(
-        `Found ${toInsert.length} new channels to insert out of ${channels.length} parsed.`,
+        `Found ${toInsert.length} new and ${toUpdate.length} changed channels out of ${seenUrls.size} unique parsed.`,
       );
 
       const chunkSize = 100;
@@ -105,11 +220,21 @@ export class M3uService {
         );
       }
 
+      for (const { id, changes } of toUpdate) {
+        await queryRunner.manager.update(Channel, id, changes);
+      }
+
       await queryRunner.commitTransaction();
+
+      summary.created = toInsert.length;
+      summary.count = toInsert.length;
+      summary.updated = toUpdate.length;
+      summary.total = seenUrls.size;
+
       this.logger.log(
-        `Successfully imported ${toInsert.length} new channels for user ${user.id}`,
+        `Imported ${summary.created} new and refreshed ${summary.updated} channels for user ${userId}`,
       );
-      return { count: toInsert.length };
+      return summary;
     } catch (err) {
       this.logger.error(`Failed to import channels: ${err.message}`, err.stack);
       await queryRunner.rollbackTransaction();
@@ -117,6 +242,31 @@ export class M3uService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  /**
+   * The playlist is the source of truth: any metadata field whose parsed value
+   * differs from what is stored gets overwritten (missing tags become null).
+   */
+  private diffMetadata(
+    existing: Channel,
+    parsed: Partial<Channel>,
+  ): QueryDeepPartialEntity<Channel> {
+    const changes: QueryDeepPartialEntity<Channel> = {};
+
+    for (const field of METADATA_FIELDS) {
+      const next = this.normalize(parsed[field]);
+      if (next !== this.normalize(existing[field])) {
+        changes[field] = next as never;
+      }
+    }
+
+    return changes;
+  }
+
+  private normalize(value: string | null | undefined): string | null {
+    const trimmed = value?.trim();
+    return trimmed ? trimmed : null;
   }
 
   private parseM3u(
