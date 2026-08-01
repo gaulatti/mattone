@@ -1,11 +1,13 @@
-import { BadGatewayException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadGatewayException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { lastValueFrom } from 'rxjs';
 import { randomUUID } from 'crypto';
 import { Channel } from '../entities/channel.entity';
+import { Device } from '../entities/device.entity';
 import { User } from '../entities/user.entity';
+import { SseService } from '../sse/sse.service';
 import { ChannelResponseDto } from './dto/channel-response.dto';
 import { CreateChannelDto } from './dto/create-channel.dto';
 import { UpdateChannelDto } from './dto/update-channel.dto';
@@ -13,11 +15,15 @@ import { UpdateChannelDto } from './dto/update-channel.dto';
 @Injectable()
 export class ChannelsService {
   private readonly playbackTickets = new Map<string, { channelId: string; userId: string; expiresAt: number }>();
+  private readonly logger = new Logger(ChannelsService.name);
 
   constructor(
     private readonly httpService: HttpService,
     @InjectRepository(Channel)
     private channelRepository: Repository<Channel>,
+    @InjectRepository(Device)
+    private deviceRepository: Repository<Device>,
+    private sseService: SseService,
   ) {}
 
   async create(user: User, dto: CreateChannelDto): Promise<ChannelResponseDto> {
@@ -43,7 +49,54 @@ export class ChannelsService {
     if (dto.tvgLogo !== undefined) channel.tvgLogo = dto.tvgLogo.trim();
     if (dto.groupTitle !== undefined) channel.groupTitle = dto.groupTitle.trim();
 
-    return new ChannelResponseDto(await this.channelRepository.save(channel));
+    const saved = await this.channelRepository.save(channel);
+    await this.syncActiveChannel(saved);
+    return new ChannelResponseDto(saved);
+  }
+
+  /**
+   * Keep active TV playback in sync after an owner changes a channel. The m3u
+   * command refreshes the on-screen title/logo and picks up a changed stream URL.
+   */
+  private async syncActiveChannel(channel: Channel): Promise<void> {
+    const devices = await this.deviceRepository.find({ where: { userId: channel.userId } });
+
+    for (const device of devices) {
+      if (device.layoutMode === 'single' && device.activeChannelId === channel.id) {
+        this.sseService.sendCommand(device.deviceCode, {
+          type: 'm3u',
+          url: channel.streamUrl,
+          title: channel.tvgName,
+          logo: channel.tvgLogo,
+          layoutMode: 'single',
+        });
+        continue;
+      }
+
+      if (device.layoutMode !== 'quad') continue;
+      const activeQuadrants = device.activeQuadrants.filter((active) => active.channelId === channel.id);
+      if (activeQuadrants.length === 0) continue;
+
+      device.activeQuadrants = device.activeQuadrants.map((active) =>
+        active.channelId === channel.id
+          ? { ...active, channelName: channel.tvgName, channelLogo: channel.tvgLogo }
+          : active,
+      );
+      await this.deviceRepository.save(device);
+
+      for (const active of activeQuadrants) {
+        this.sseService.sendCommand(device.deviceCode, {
+          type: 'm3u',
+          url: channel.streamUrl,
+          title: channel.tvgName,
+          logo: channel.tvgLogo,
+          layoutMode: 'quad',
+          quadrant: active.quadrant,
+        });
+      }
+    }
+
+    this.logger.log(`Synced updated channel ${channel.id} to active devices`);
   }
 
   async findAll(
