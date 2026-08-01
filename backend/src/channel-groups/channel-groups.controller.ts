@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Body,
   Param,
@@ -12,6 +13,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { ChannelGroupsService } from './channel-groups.service';
 import { CreateChannelGroupDto } from './dto/create-channel-group.dto';
+import { UpdateChannelGroupDto } from './dto/update-channel-group.dto';
 
 @UseGuards(AuthGuard('jwt'))
 @Controller('channel-groups')
@@ -31,6 +33,11 @@ export class ChannelGroupsController {
   @Post()
   async create(@Request() req, @Body() dto: CreateChannelGroupDto) {
     return this.channelGroupsService.create(req.user, dto);
+  }
+
+  @Patch(':id')
+  async update(@Request() req, @Param('id') id: string, @Body() dto: UpdateChannelGroupDto) {
+    return this.channelGroupsService.update(id, req.user, dto);
   }
 
   @Delete(':id')

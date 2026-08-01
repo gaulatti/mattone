@@ -34,6 +34,8 @@ export interface CreateChannelInput {
   groupTitle?: string;
 }
 
+export type UpdateChannelInput = Partial<CreateChannelInput>;
+
 export const useCreateChannel = () => {
   const queryClient = useQueryClient();
 
@@ -45,6 +47,21 @@ export const useCreateChannel = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['channels'] });
       queryClient.invalidateQueries({ queryKey: ['channelGroups'] });
+    }
+  });
+};
+
+export const useUpdateChannel = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...payload }: UpdateChannelInput & { id: string }) => {
+      const { data } = await api.patch<Channel>(`/channels/${id}`, payload);
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['channels'] });
+      queryClient.invalidateQueries({ queryKey: ['channelGroups'] });
+      queryClient.invalidateQueries({ queryKey: ['channelGroupTitles'] });
     }
   });
 };

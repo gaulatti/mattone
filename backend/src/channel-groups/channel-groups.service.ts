@@ -9,6 +9,7 @@ import { ChannelGroup } from '../entities/channel-group.entity';
 import { Channel } from '../entities/channel.entity';
 import { User } from '../entities/user.entity';
 import { CreateChannelGroupDto } from './dto/create-channel-group.dto';
+import { UpdateChannelGroupDto } from './dto/update-channel-group.dto';
 
 @Injectable()
 export class ChannelGroupsService {
@@ -44,6 +45,12 @@ export class ChannelGroupsService {
       userId: user.id,
       channels: [],
     });
+    return this.channelGroupRepository.save(group);
+  }
+
+  async update(id: string, user: User, dto: UpdateChannelGroupDto): Promise<ChannelGroup> {
+    const group = await this.findOne(id, user);
+    group.name = dto.name.trim();
     return this.channelGroupRepository.save(group);
   }
 

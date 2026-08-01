@@ -31,6 +31,7 @@ export interface Channel {
   tvgName: string;
   tvgLogo: string;
   groupTitle: string;
+  streamUrl?: string;
   createdAt: string;
   updatedAt: string;
 }

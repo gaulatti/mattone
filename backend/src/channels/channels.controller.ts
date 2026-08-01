@@ -5,6 +5,7 @@ import {
   UseGuards,
   Request,
   Post,
+  Patch,
   Body,
   Param,
   Res,
@@ -13,6 +14,7 @@ import { AuthGuard } from '@nestjs/passport';
 import type { FastifyReply } from 'fastify';
 import { ChannelsService } from './channels.service';
 import { CreateChannelDto } from './dto/create-channel.dto';
+import { UpdateChannelDto } from './dto/update-channel.dto';
 
 const logoFallback = (name: string) => {
   const label = name.slice(0, 2).toUpperCase().replace(/[&<>"']/g, '');
@@ -27,6 +29,12 @@ export class ChannelsController {
   @UseGuards(AuthGuard('jwt'))
   async create(@Request() req, @Body() dto: CreateChannelDto) {
     return this.channelsService.create(req.user, dto);
+  }
+
+  @Patch(':id')
+  @UseGuards(AuthGuard('jwt'))
+  async update(@Request() req, @Param('id') id: string, @Body() dto: UpdateChannelDto) {
+    return this.channelsService.update(id, req.user, dto);
   }
 
   @Get()

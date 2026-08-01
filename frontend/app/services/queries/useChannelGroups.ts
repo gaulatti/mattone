@@ -37,6 +37,19 @@ export const useDeleteChannelGroup = () => {
   });
 };
 
+export const useUpdateChannelGroup = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { data } = await api.patch<ChannelGroup>(`/channel-groups/${id}`, { name });
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['channelGroups'] });
+    }
+  });
+};
+
 export const useAddChannelToGroup = () => {
   const queryClient = useQueryClient();
   return useMutation({

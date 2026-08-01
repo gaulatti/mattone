@@ -8,6 +8,7 @@ import { Channel } from '../entities/channel.entity';
 import { User } from '../entities/user.entity';
 import { ChannelResponseDto } from './dto/channel-response.dto';
 import { CreateChannelDto } from './dto/create-channel.dto';
+import { UpdateChannelDto } from './dto/update-channel.dto';
 
 @Injectable()
 export class ChannelsService {
@@ -31,6 +32,18 @@ export class ChannelsService {
 
     const saved = await this.channelRepository.save(channel);
     return new ChannelResponseDto(saved);
+  }
+
+  async update(id: string, user: User, dto: UpdateChannelDto): Promise<ChannelResponseDto> {
+    const channel = await this.channelRepository.findOne({ where: { id, userId: user.id } });
+    if (!channel) throw new NotFoundException('Channel not found');
+
+    if (dto.tvgName !== undefined) channel.tvgName = dto.tvgName.trim();
+    if (dto.streamUrl !== undefined) channel.streamUrl = dto.streamUrl.trim();
+    if (dto.tvgLogo !== undefined) channel.tvgLogo = dto.tvgLogo.trim();
+    if (dto.groupTitle !== undefined) channel.groupTitle = dto.groupTitle.trim();
+
+    return new ChannelResponseDto(await this.channelRepository.save(channel));
   }
 
   async findAll(

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { AlertDialog, Avatar, Button, Card, Empty, LoadingSpinner, Modal, SectionHeader } from '@gaulatti/bleecker';
 import type { Channel, ChannelGroup } from '../types';
-import { useChannelGroups, useCreateChannelGroup, useDeleteChannelGroup, useAddChannelToGroup, useRemoveChannelFromGroup } from '../services/queries/useChannelGroups';
-import { useChannels, useCreateChannel } from '../services/queries/useChannels';
-import { Plus, Trash2, PlusCircle, MinusCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { useChannelGroups, useCreateChannelGroup, useDeleteChannelGroup, useUpdateChannelGroup, useAddChannelToGroup, useRemoveChannelFromGroup } from '../services/queries/useChannelGroups';
+import { useChannels, useCreateChannel, useUpdateChannel } from '../services/queries/useChannels';
+import { Plus, Trash2, PlusCircle, MinusCircle, ChevronDown, ChevronRight, Pencil } from 'lucide-react';
 import { useDebounce } from '../hooks/useDebounce';
 import { apiUrl } from '../services/api';
 
@@ -18,15 +18,25 @@ export default function Groups() {
   const [customChannelGroupTitle, setCustomChannelGroupTitle] = useState('');
   const [customChannelError, setCustomChannelError] = useState('');
   const [groupPendingDelete, setGroupPendingDelete] = useState<ChannelGroup | null>(null);
+  const [groupBeingEdited, setGroupBeingEdited] = useState<ChannelGroup | null>(null);
+  const [editedGroupName, setEditedGroupName] = useState('');
+  const [channelBeingEdited, setChannelBeingEdited] = useState<Channel | null>(null);
+  const [editedChannelName, setEditedChannelName] = useState('');
+  const [editedChannelStreamUrl, setEditedChannelStreamUrl] = useState('');
+  const [editedChannelLogo, setEditedChannelLogo] = useState('');
+  const [editedChannelGroupTitle, setEditedChannelGroupTitle] = useState('');
+  const [editError, setEditError] = useState('');
 
   const debouncedSearch = useDebounce(channelSearch, 400);
 
   const { data: groups = [], isLoading } = useChannelGroups();
   const createGroup = useCreateChannelGroup();
   const deleteGroup = useDeleteChannelGroup();
+  const updateGroup = useUpdateChannelGroup();
   const addChannel = useAddChannelToGroup();
   const removeChannel = useRemoveChannelFromGroup();
   const createChannel = useCreateChannel();
+  const updateChannel = useUpdateChannel();
 
   const { data: channelsData } = useChannels(undefined, debouncedSearch || undefined, 1, 50);
   const allChannels = channelsData?.data || [];
@@ -56,6 +66,45 @@ export default function Groups() {
 
   const handleRemoveChannel = (groupId: string, channel: Channel) => {
     removeChannel.mutate({ groupId, channelId: channel.id });
+  };
+
+  const openGroupEditor = (group: ChannelGroup) => {
+    setGroupBeingEdited(group);
+    setEditedGroupName(group.name);
+    setEditError('');
+  };
+
+  const openChannelEditor = (channel: Channel) => {
+    setChannelBeingEdited(channel);
+    setEditedChannelName(channel.tvgName);
+    setEditedChannelStreamUrl(channel.streamUrl || '');
+    setEditedChannelLogo(channel.tvgLogo || '');
+    setEditedChannelGroupTitle(channel.groupTitle || '');
+    setEditError('');
+  };
+
+  const handleUpdateGroup = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!groupBeingEdited || !editedGroupName.trim()) return;
+    updateGroup.mutate(
+      { id: groupBeingEdited.id, name: editedGroupName.trim() },
+      { onSuccess: () => setGroupBeingEdited(null), onError: (error) => setEditError(getApiErrorMessage(error)) }
+    );
+  };
+
+  const handleUpdateChannel = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!channelBeingEdited || !editedChannelName.trim() || !editedChannelStreamUrl.trim()) return;
+    updateChannel.mutate(
+      {
+        id: channelBeingEdited.id,
+        tvgName: editedChannelName.trim(),
+        streamUrl: editedChannelStreamUrl.trim(),
+        tvgLogo: editedChannelLogo.trim(),
+        groupTitle: editedChannelGroupTitle.trim()
+      },
+      { onSuccess: () => setChannelBeingEdited(null), onError: (error) => setEditError(getApiErrorMessage(error)) }
+    );
   };
 
   const closeAddChannelModal = () => {
@@ -201,6 +250,15 @@ export default function Groups() {
                         Add
                       </Button>
                       <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => openGroupEditor(group)}
+                        title='Edit group name'
+                        className='rounded-lg py-1.5 text-xs'
+                      >
+                        <Pencil size={14} />
+                      </Button>
+                      <Button
                         variant='destructive'
                         size='sm'
                         onClick={() => handleDeleteGroup(group)}
@@ -227,15 +285,26 @@ export default function Groups() {
                                 <p className='text-xs text-text-secondary dark:text-text-secondary'>{channel.groupTitle || 'Uncategorized'}</p>
                               </div>
                             </div>
-                            <Button
-                              variant='ghost'
-                              size='sm'
-                              onClick={() => handleRemoveChannel(group.id, channel)}
-                              title='Remove from group'
-                              className='ml-4 h-auto shrink-0 rounded-lg px-1.5 py-1 text-terracotta hover:translate-y-0 hover:bg-transparent hover:text-terracotta/80 dark:hover:bg-transparent'
-                            >
-                              <MinusCircle size={16} />
-                            </Button>
+                            <div className='ml-4 flex shrink-0 items-center gap-1'>
+                              <Button
+                                variant='ghost'
+                                size='sm'
+                                onClick={() => openChannelEditor(channel)}
+                                title='Edit channel'
+                                className='h-auto rounded-lg px-1.5 py-1'
+                              >
+                                <Pencil size={16} />
+                              </Button>
+                              <Button
+                                variant='ghost'
+                                size='sm'
+                                onClick={() => handleRemoveChannel(group.id, channel)}
+                                title='Remove from group'
+                                className='h-auto rounded-lg px-1.5 py-1 text-terracotta hover:translate-y-0 hover:bg-transparent hover:text-terracotta/80 dark:hover:bg-transparent'
+                              >
+                                <MinusCircle size={16} />
+                              </Button>
+                            </div>
                           </li>
                         ))
                       )}
@@ -349,6 +418,37 @@ export default function Groups() {
             Done
           </Button>
         </div>
+      </Modal>
+
+      <Modal isOpen={!!groupBeingEdited} onClose={() => setGroupBeingEdited(null)} title='Edit Channel Group'>
+        <form onSubmit={handleUpdateGroup} className='space-y-4'>
+          <input
+            type='text'
+            aria-label='Group name'
+            value={editedGroupName}
+            onChange={(e) => setEditedGroupName(e.target.value)}
+            className='block w-full border-sand/30 dark:border-sand/50 bg-white dark:bg-sand/10 text-text-primary dark:text-text-primary rounded-lg shadow-sm focus:ring-2 focus:ring-sea dark:focus:ring-accent-blue sm:text-sm p-2 border'
+          />
+          {editError && <p className='text-xs text-terracotta'>{editError}</p>}
+          <div className='flex justify-end gap-2'>
+            <Button type='button' variant='secondary' onClick={() => setGroupBeingEdited(null)}>Cancel</Button>
+            <Button type='submit' disabled={!editedGroupName.trim() || updateGroup.isPending}>{updateGroup.isPending ? 'Saving...' : 'Save'}</Button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal isOpen={!!channelBeingEdited} onClose={() => setChannelBeingEdited(null)} title='Edit Channel'>
+        <form onSubmit={handleUpdateChannel} className='space-y-3'>
+          <input type='text' placeholder='Channel name *' value={editedChannelName} onChange={(e) => setEditedChannelName(e.target.value)} className='block w-full border-sand/30 dark:border-sand/50 bg-white dark:bg-sand/10 text-text-primary dark:text-text-primary rounded-lg shadow-sm focus:ring-2 focus:ring-sea dark:focus:ring-accent-blue sm:text-sm p-2 border' />
+          <input type='url' placeholder='Stream URL *' value={editedChannelStreamUrl} onChange={(e) => setEditedChannelStreamUrl(e.target.value)} className='block w-full border-sand/30 dark:border-sand/50 bg-white dark:bg-sand/10 text-text-primary dark:text-text-primary rounded-lg shadow-sm focus:ring-2 focus:ring-sea dark:focus:ring-accent-blue sm:text-sm p-2 border' />
+          <input type='text' placeholder='Group title (optional)' value={editedChannelGroupTitle} onChange={(e) => setEditedChannelGroupTitle(e.target.value)} className='block w-full border-sand/30 dark:border-sand/50 bg-white dark:bg-sand/10 text-text-primary dark:text-text-primary rounded-lg shadow-sm focus:ring-2 focus:ring-sea dark:focus:ring-accent-blue sm:text-sm p-2 border' />
+          <input type='url' placeholder='Logo URL (optional)' value={editedChannelLogo} onChange={(e) => setEditedChannelLogo(e.target.value)} className='block w-full border-sand/30 dark:border-sand/50 bg-white dark:bg-sand/10 text-text-primary dark:text-text-primary rounded-lg shadow-sm focus:ring-2 focus:ring-sea dark:focus:ring-accent-blue sm:text-sm p-2 border' />
+          {editError && <p className='text-xs text-terracotta'>{editError}</p>}
+          <div className='flex justify-end gap-2'>
+            <Button type='button' variant='secondary' onClick={() => setChannelBeingEdited(null)}>Cancel</Button>
+            <Button type='submit' disabled={!editedChannelName.trim() || !editedChannelStreamUrl.trim() || updateChannel.isPending}>{updateChannel.isPending ? 'Saving...' : 'Save'}</Button>
+          </div>
+        </form>
       </Modal>
 
       <AlertDialog
