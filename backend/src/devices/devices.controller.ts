@@ -18,6 +18,8 @@ import { CreateDeviceDto } from './dto/create-device.dto';
 import { PlayCommandDto } from './dto/play-command.dto';
 import { PlayQuadrantCommandDto } from './dto/play-quadrant-command.dto';
 import { UpdateDeviceDto } from './dto/update-device.dto';
+import { VolumeCommandDto } from './dto/volume-command.dto';
+import { RestartStreamCommandDto } from './dto/restart-stream-command.dto';
 
 @Controller('devices')
 export class DevicesController {
@@ -120,5 +122,43 @@ export class DevicesController {
   @Post(':id/callsign')
   async callsign(@Request() req, @Param('id') id: string) {
     return this.devicesService.callsign(id, req.user);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/seize')
+  async seize(@Request() req, @Param('id') id: string) {
+    return this.devicesService.sendControlCommand(id, req.user, { type: 'seize' });
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/restart')
+  async restart(@Request() req, @Param('id') id: string) {
+    return this.devicesService.sendControlCommand(id, req.user, { type: 'reboot' });
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/restart-stream')
+  async restartStream(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() command: RestartStreamCommandDto,
+  ) {
+    return this.devicesService.sendControlCommand(id, req.user, {
+      type: 'restart_stream',
+      quadrant: command.quadrant,
+    });
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/volume')
+  async volume(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() command: VolumeCommandDto,
+  ) {
+    return this.devicesService.sendControlCommand(id, req.user, {
+      type: 'volume',
+      delta: command.delta,
+    });
   }
 }

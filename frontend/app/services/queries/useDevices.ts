@@ -139,3 +139,22 @@ export const useCallsignDevice = () => {
     },
   });
 };
+
+const useDeviceCommand = (path: string) => {
+  return useMutation({
+    mutationFn: async ({
+      id,
+      body,
+    }: {
+      id: string;
+      body?: Record<string, unknown>;
+    }) => {
+      await api.post(`/devices/${id}/${path}`, body || {});
+    },
+  });
+};
+
+export const useSeizeDevice = () => useDeviceCommand("seize");
+export const useRestartDevice = () => useDeviceCommand("restart");
+export const useRestartStream = () => useDeviceCommand("restart-stream");
+export const useAdjustVolume = () => useDeviceCommand("volume");

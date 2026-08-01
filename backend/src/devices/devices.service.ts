@@ -373,6 +373,16 @@ export class DevicesService implements OnModuleInit {
     return { status: 'updated' };
   }
 
+  async sendControlCommand(
+    id: string,
+    user: User,
+    payload: { type: string; [key: string]: any },
+  ) {
+    const device = await this.getOwnedDevice(id, user);
+    const sent = this.sseService.sendCommand(device.deviceCode, payload);
+    return { status: sent ? 'command sent' : 'queued' };
+  }
+
   async stop(id: string, user: User) {
     const device = await this.getOwnedDevice(id, user);
 

@@ -18,6 +18,10 @@ import {
   useEnableQuadMode,
   useDisableQuadMode,
   useStopQuadrant,
+  useSeizeDevice,
+  useRestartDevice,
+  useRestartStream,
+  useAdjustVolume,
 } from "../services/queries/useDevices";
 import {
   Pencil,
@@ -27,6 +31,9 @@ import {
   Radio,
   LayoutGrid,
   Monitor,
+  Volume2,
+  RefreshCw,
+  Power,
 } from "lucide-react";
 
 export default function Devices() {
@@ -46,6 +53,10 @@ export default function Devices() {
   const enableQuadMode = useEnableQuadMode();
   const disableQuadMode = useDisableQuadMode();
   const stopQuadrant = useStopQuadrant();
+  const seizeDevice = useSeizeDevice();
+  const restartDevice = useRestartDevice();
+  const restartStream = useRestartStream();
+  const adjustVolume = useAdjustVolume();
 
   const handleDelete = (device: Device) => {
     setDevicePendingDelete(device);
@@ -284,6 +295,48 @@ export default function Devices() {
                   <Button
                     variant="secondary"
                     size="sm"
+                    onClick={() => seizeDevice.mutate({ id: device.id, body: {} })}
+                    disabled={seizeDevice.isPending}
+                    title="Bring Celesti to the foreground"
+                    className="gap-1 rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20"
+                  >
+                    <Monitor size={14} />
+                    Seize
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => restartStream.mutate({ id: device.id, body: {} })}
+                    disabled={restartStream.isPending}
+                    title="Restart the current stream"
+                    className="gap-1 rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20"
+                  >
+                    <RefreshCw size={14} />
+                    Stream
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => adjustVolume.mutate({ id: device.id, body: { delta: -10 } })}
+                    disabled={adjustVolume.isPending}
+                    title="Lower volume"
+                    className="gap-1 rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20"
+                  >
+                    <Volume2 size={14} />−
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => adjustVolume.mutate({ id: device.id, body: { delta: 10 } })}
+                    disabled={adjustVolume.isPending}
+                    title="Raise volume"
+                    className="gap-1 rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20"
+                  >
+                    <Volume2 size={14} />+
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    size="sm"
                     onClick={() => handleCallsign(device)}
                     disabled={callsignDevice.isPending}
                     title="Send callsign to this device"
@@ -329,6 +382,17 @@ export default function Devices() {
                     className="rounded-lg"
                   >
                     Delete
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => restartDevice.mutate({ id: device.id, body: {} })}
+                    disabled={restartDevice.isPending}
+                    title="Restart the TV (requires device privilege)"
+                    className="gap-1 rounded-lg"
+                  >
+                    <Power size={14} />
+                    Restart TV
                   </Button>
                 </div>
               </div>
