@@ -32,6 +32,7 @@ export interface Channel {
   tvgLogo: string;
   groupTitle: string;
   streamUrl?: string;
+  reliabilityStatus?: "green" | "warning" | "blocked";
   createdAt: string;
   updatedAt: string;
 }

@@ -198,6 +198,9 @@ export default function Channels() {
                   <p className="text-sm font-medium text-sea dark:text-accent-blue truncate">
                     {channel.tvgName}
                   </p>
+                  <span className={`ml-2 rounded-full px-2 py-0.5 text-xs ${channel.reliabilityStatus === "blocked" ? "bg-terracotta/15 text-terracotta" : channel.reliabilityStatus === "warning" ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
+                    {channel.reliabilityStatus || "green"}
+                  </span>
                 </div>
                 <div className="mt-1">
                   <p className="flex items-center text-sm text-text-secondary dark:text-text-secondary">
