@@ -373,6 +373,21 @@ export class DevicesService implements OnModuleInit {
     return { status: 'updated' };
   }
 
+  async deviceStopSingle(deviceCode: string) {
+    const device = await this.deviceRepository.findOne({
+      where: { deviceCode },
+    });
+    if (!device) {
+      throw new NotFoundException('Device not found');
+    }
+
+    device.activeChannelId = null;
+    device.layoutMode = 'single';
+    await this.deviceRepository.save(device);
+
+    return { status: 'updated' };
+  }
+
   async sendControlCommand(
     id: string,
     user: User,

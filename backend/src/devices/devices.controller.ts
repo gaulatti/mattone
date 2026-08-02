@@ -118,6 +118,11 @@ export class DevicesController {
     return this.devicesService.deviceStopQuadrant(deviceCode, quadrant);
   }
 
+  @Post('single/stop')
+  async deviceStopSingle(@Headers('X-Device-ID') deviceCode: string) {
+    return this.devicesService.deviceStopSingle(deviceCode);
+  }
+
   @UseGuards(AuthGuard('jwt'))
   @Post(':id/callsign')
   async callsign(@Request() req, @Param('id') id: string) {
