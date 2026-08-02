@@ -14,6 +14,7 @@ import { Device } from './entities/device.entity';
 import { Channel } from './entities/channel.entity';
 import { ChannelGroup } from './entities/channel-group.entity';
 import { M3uSource } from './entities/m3u-source.entity';
+import { ChannelReliabilityEvent } from './entities/channel-reliability-event.entity';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { M3uSource } from './entities/m3u-source.entity';
         username: configService.get<string>('DB_USER', 'postgres'),
         password: configService.get<string>('DB_PASS'),
         database: configService.get<string>('DB_NAME', 'mattone'),
-        entities: [User, Device, Channel, ChannelGroup, M3uSource],
+        entities: [User, Device, Channel, ChannelGroup, M3uSource, ChannelReliabilityEvent],
         synchronize: true, // Auto-migrate dev only
       }),
       inject: [ConfigService],

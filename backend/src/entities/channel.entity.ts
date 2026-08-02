@@ -39,6 +39,12 @@ export class Channel {
   @Column({ name: 'source_url', type: 'text', nullable: false })
   sourceUrl: string;
 
+  @Column({ name: 'reliability_status', type: 'varchar', length: 16, default: 'green' })
+  reliabilityStatus: 'green' | 'warning' | 'blocked';
+
+  @Column({ name: 'reliability_updated_at', type: 'timestamptz', nullable: true })
+  reliabilityUpdatedAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

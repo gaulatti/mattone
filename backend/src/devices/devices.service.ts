@@ -58,6 +58,7 @@ export class DevicesService implements OnModuleInit {
           if (channel) {
             const payload = {
               type: 'm3u',
+              channelId: channel.id,
               url: channel.streamUrl,
               title: channel.tvgName,
               logo: channel.tvgLogo,
@@ -82,6 +83,7 @@ export class DevicesService implements OnModuleInit {
         if (channel) {
           const payload = {
             type: 'm3u',
+            channelId: channel.id,
             url: channel.streamUrl,
             title: channel.tvgName,
             logo: channel.tvgLogo,
@@ -258,6 +260,7 @@ export class DevicesService implements OnModuleInit {
 
     const payload = {
       type: 'm3u',
+      channelId: channel.id,
       url: channel.streamUrl,
       title: channel.tvgName,
       logo: channel.tvgLogo,
@@ -317,6 +320,7 @@ export class DevicesService implements OnModuleInit {
 
     const payload = {
       type: 'm3u',
+      channelId: channel.id,
       url: channel.streamUrl,
       title: channel.tvgName,
       logo: channel.tvgLogo,

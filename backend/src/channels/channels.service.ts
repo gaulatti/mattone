@@ -65,6 +65,7 @@ export class ChannelsService {
       if (device.layoutMode === 'single' && device.activeChannelId === channel.id) {
         this.sseService.sendCommand(device.deviceCode, {
           type: 'm3u',
+          channelId: channel.id,
           url: channel.streamUrl,
           title: channel.tvgName,
           logo: channel.tvgLogo,
@@ -87,6 +88,7 @@ export class ChannelsService {
       for (const active of activeQuadrants) {
         this.sseService.sendCommand(device.deviceCode, {
           type: 'm3u',
+          channelId: channel.id,
           url: channel.streamUrl,
           title: channel.tvgName,
           logo: channel.tvgLogo,

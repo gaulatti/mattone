@@ -9,6 +9,9 @@ import {
 export class TelemetryEventDto {
   @IsString()
   @IsOptional()
+  channelId?: string;
+  @IsString()
+  @IsOptional()
   deviceCode?: string;
 
   @IsEnum(['ios', 'android', 'web', 'backend'])

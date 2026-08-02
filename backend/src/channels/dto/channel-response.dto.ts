@@ -7,6 +7,7 @@ export class ChannelResponseDto {
   tvgName: string;
   tvgLogo: string;
   groupTitle: string;
+  reliabilityStatus: 'green' | 'warning' | 'blocked';
   createdAt: Date;
   updatedAt: Date;
 
@@ -15,6 +16,7 @@ export class ChannelResponseDto {
     tvgName: string;
     tvgLogo: string;
     groupTitle: string;
+    reliabilityStatus?: 'green' | 'warning' | 'blocked';
     createdAt: Date;
     updatedAt: Date;
   }) {
@@ -22,6 +24,7 @@ export class ChannelResponseDto {
     this.tvgName = channel.tvgName;
     this.tvgLogo = channel.tvgLogo;
     this.groupTitle = channel.groupTitle;
+    this.reliabilityStatus = channel.reliabilityStatus ?? 'green';
     this.createdAt = channel.createdAt;
     this.updatedAt = channel.updatedAt;
   }

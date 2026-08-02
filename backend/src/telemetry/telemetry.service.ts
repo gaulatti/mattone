@@ -1,5 +1,9 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import * as client from 'prom-client';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Channel } from '../entities/channel.entity';
+import { ChannelReliabilityEvent } from '../entities/channel-reliability-event.entity';
 
 export interface TelemetryEvent {
   deviceCode?: string;
@@ -27,6 +31,7 @@ export interface TelemetryEvent {
   errorReason?: string;
   durationMs?: number;
   metadata?: Record<string, unknown>;
+  channelId?: string;
 }
 
 @Injectable()
@@ -84,7 +89,7 @@ export class TelemetryService implements OnModuleInit {
   >;
   private readonly frontendEvents: client.Counter<'event_name' | 'page'>;
 
-  constructor() {
+  constructor(@InjectRepository(Channel) private channels: Repository<Channel>, @InjectRepository(ChannelReliabilityEvent) private reliabilityEvents: Repository<ChannelReliabilityEvent>) {
     client.collectDefaultMetrics({ register: this.register });
 
     this.playbackStarts = new client.Counter({
@@ -208,6 +213,7 @@ export class TelemetryService implements OnModuleInit {
   }
 
   recordEvent(event: TelemetryEvent): void {
+    void this.recordReliability(event);
     const layoutMode = event.layoutMode ?? 'single';
 
     switch (event.eventType) {
@@ -308,6 +314,18 @@ export class TelemetryService implements OnModuleInit {
       default:
         this.logger.debug(`Unhandled telemetry event: ${event.eventType}`);
     }
+  }
+
+  private async recordReliability(event: TelemetryEvent): Promise<void> {
+    if (!event.channelId) return;
+    const status = event.eventType === 'playback_start' ? 'green' : event.eventType === 'playback_failure' ? 'blocked' : event.eventType === 'playback_error' ? 'warning' : null;
+    if (!status) return;
+    const channel = await this.channels.findOneBy({ id: event.channelId });
+    if (!channel) return;
+    channel.reliabilityStatus = status;
+    channel.reliabilityUpdatedAt = new Date();
+    await this.channels.save(channel);
+    await this.reliabilityEvents.save(this.reliabilityEvents.create({ channelId: channel.id, status, deviceCode: event.deviceCode, errorCode: event.errorCode, reason: event.errorReason }));
   }
 
   recordConnection(
