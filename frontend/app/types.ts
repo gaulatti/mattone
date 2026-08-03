@@ -11,6 +11,8 @@ export interface Device {
   nickname: string | null;
   layoutMode: "single" | "quad";
   activeChannelId: string | null;
+  activeChannelName?: string;
+  activeChannelLogo?: string;
   activeQuadrants: ActiveQuadrant[];
   userId: string;
   createdAt: string;

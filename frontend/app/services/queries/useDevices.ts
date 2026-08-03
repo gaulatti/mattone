@@ -113,9 +113,13 @@ export const usePlayQuadrant = () => {
 };
 
 export const useStopDevice = () => {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
       await api.post(`/devices/${id}/stop`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["devices"] });
     },
   });
 };
@@ -128,6 +132,14 @@ export const useStopQuadrant = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["devices"] });
+    },
+  });
+};
+
+export const useFocusQuadrantAudio = () => {
+  return useMutation({
+    mutationFn: async ({ id, quadrant }: { id: string; quadrant: number }) => {
+      await api.post(`/devices/${id}/quad/focus-audio/${quadrant}`);
     },
   });
 };

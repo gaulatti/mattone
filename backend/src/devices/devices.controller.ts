@@ -107,6 +107,16 @@ export class DevicesController {
     return this.devicesService.stopQuadrant(id, req.user, quadrant);
   }
 
+  @UseGuards(AuthGuard('jwt'))
+  @Post(':id/quad/focus-audio/:quadrant')
+  async focusQuadrantAudio(
+    @Request() req,
+    @Param('id') id: string,
+    @Param('quadrant', ParseIntPipe) quadrant: number,
+  ) {
+    return this.devicesService.focusQuadrantAudio(id, req.user, quadrant);
+  }
+
   // Device-facing endpoint: lets the device report that a quadrant was
   // stopped locally (e.g., long-press OK on the remote). Uses the device
   // code header instead of JWT because the TV doesn't have user credentials.
@@ -132,13 +142,17 @@ export class DevicesController {
   @UseGuards(AuthGuard('jwt'))
   @Post(':id/seize')
   async seize(@Request() req, @Param('id') id: string) {
-    return this.devicesService.sendControlCommand(id, req.user, { type: 'seize' });
+    return this.devicesService.sendControlCommand(id, req.user, {
+      type: 'seize',
+    });
   }
 
   @UseGuards(AuthGuard('jwt'))
   @Post(':id/restart')
   async restart(@Request() req, @Param('id') id: string) {
-    return this.devicesService.sendControlCommand(id, req.user, { type: 'reboot' });
+    return this.devicesService.sendControlCommand(id, req.user, {
+      type: 'reboot',
+    });
   }
 
   @UseGuards(AuthGuard('jwt'))

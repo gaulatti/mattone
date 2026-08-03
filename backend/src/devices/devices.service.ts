@@ -142,9 +142,10 @@ export class DevicesService implements OnModuleInit {
     });
     const channelIds = [
       ...new Set(
-        devices.flatMap((device) =>
-          device.activeQuadrants.map((active) => active.channelId),
-        ),
+        devices.flatMap((device) => [
+          ...(device.activeChannelId ? [device.activeChannelId] : []),
+          ...device.activeQuadrants.map((active) => active.channelId),
+        ]),
       ),
     ];
 
@@ -163,6 +164,12 @@ export class DevicesService implements OnModuleInit {
 
     return devices.map((device) => ({
       ...device,
+      activeChannelName: device.activeChannelId
+        ? channelsById.get(device.activeChannelId)?.tvgName
+        : undefined,
+      activeChannelLogo: device.activeChannelId
+        ? channelsById.get(device.activeChannelId)?.tvgLogo
+        : undefined,
       activeQuadrants: device.activeQuadrants.map((active) => {
         const channel = channelsById.get(active.channelId);
         return {
@@ -355,6 +362,28 @@ export class DevicesService implements OnModuleInit {
       quadrant,
     });
     return { status: sent ? 'command sent' : 'queued' };
+  }
+
+  async focusQuadrantAudio(id: string, user: User, quadrant: number) {
+    if (quadrant < 0 || quadrant > 3) {
+      throw new BadRequestException('Quadrant must be between 0 and 3');
+    }
+
+    const device = await this.getOwnedDevice(id, user);
+    if (device.layoutMode !== 'quad') {
+      throw new BadRequestException('Device is not in quad mode');
+    }
+    if (
+      !device.activeQuadrants.some((active) => active.quadrant === quadrant)
+    ) {
+      throw new BadRequestException('Quadrant is not playing a stream');
+    }
+
+    const sent = this.sseService.sendCommand(device.deviceCode, {
+      type: 'focus_audio',
+      quadrant,
+    });
+    return { status: sent ? 'command sent' : 'queued', quadrant };
   }
 
   async deviceStopQuadrant(deviceCode: string, quadrant: number) {

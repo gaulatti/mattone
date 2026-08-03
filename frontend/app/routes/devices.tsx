@@ -5,6 +5,7 @@ import {
   Card,
   Empty,
   LoadingSpinner,
+  Modal,
   SectionHeader,
 } from "@gaulatti/bleecker";
 import type { Device } from "../types";
@@ -17,6 +18,7 @@ import {
   useCallsignDevice,
   useEnableQuadMode,
   useDisableQuadMode,
+  useFocusQuadrantAudio,
   useStopQuadrant,
   useSeizeDevice,
   useRestartDevice,
@@ -43,6 +45,10 @@ export default function Devices() {
   const [devicePendingDelete, setDevicePendingDelete] = useState<Device | null>(
     null,
   );
+  const [selectedQuadStream, setSelectedQuadStream] = useState<{
+    deviceId: string;
+    quadrant: number;
+  } | null>(null);
 
   const { data: devices = [], isLoading } = useDevices();
   const addDevice = useAddDevice();
@@ -52,6 +58,7 @@ export default function Devices() {
   const callsignDevice = useCallsignDevice();
   const enableQuadMode = useEnableQuadMode();
   const disableQuadMode = useDisableQuadMode();
+  const focusQuadrantAudio = useFocusQuadrantAudio();
   const stopQuadrant = useStopQuadrant();
   const seizeDevice = useSeizeDevice();
   const restartDevice = useRestartDevice();
@@ -116,8 +123,36 @@ export default function Devices() {
     }
   };
 
-  const handleStopQuadrant = (device: Device, quadrant: number) => {
-    stopQuadrant.mutate({ id: device.id, quadrant });
+  const modalDevice = selectedQuadStream
+    ? devices.find((device) => device.id === selectedQuadStream.deviceId)
+    : undefined;
+  const modalStream =
+    modalDevice && selectedQuadStream
+      ? modalDevice.activeQuadrants.find(
+          (active) => active.quadrant === selectedQuadStream.quadrant,
+        )
+      : undefined;
+
+  const closeQuadStreamModal = () => setSelectedQuadStream(null);
+
+  const handleQuadStreamAction = (action: "stop" | "reload" | "focus") => {
+    if (!selectedQuadStream) return;
+    const variables = {
+      id: selectedQuadStream.deviceId,
+      quadrant: selectedQuadStream.quadrant,
+    };
+    const options = { onSuccess: closeQuadStreamModal };
+
+    if (action === "stop") {
+      stopQuadrant.mutate(variables, options);
+    } else if (action === "reload") {
+      restartStream.mutate(
+        { id: variables.id, body: { quadrant: variables.quadrant } },
+        options,
+      );
+    } else {
+      focusQuadrantAudio.mutate(variables, options);
+    }
   };
 
   if (isLoading) {
@@ -242,6 +277,27 @@ export default function Devices() {
                         </p>
                       </div>
                     </div>
+                    {device.layoutMode === "single" && (
+                      <div className="mt-3 inline-flex max-w-md items-center gap-2 rounded-md bg-sand/10 px-2.5 py-1.5 text-xs text-text-secondary dark:bg-sand/10 dark:text-text-secondary">
+                        <Radio
+                          size={13}
+                          className={
+                            device.activeChannelId
+                              ? "text-sea dark:text-accent-blue"
+                              : "opacity-40"
+                          }
+                        />
+                        <span className="font-medium">
+                          {device.activeChannelId ? "Playing" : "Stream"}
+                        </span>
+                        <span className="min-w-0 truncate">
+                          {device.activeChannelName ||
+                            (device.activeChannelId
+                              ? "Current channel"
+                              : "Nothing playing")}
+                        </span>
+                      </div>
+                    )}
                     {device.layoutMode === "quad" && (
                       <div className="mt-3">
                         <div className="inline-flex items-center gap-1.5 rounded-full border border-sand/20 dark:border-sand/30 bg-sand/5 dark:bg-sand/10 px-2.5 py-1">
@@ -262,12 +318,16 @@ export default function Devices() {
                               <button
                                 key={q}
                                 onClick={() =>
-                                  active && handleStopQuadrant(device, q)
+                                  active &&
+                                  setSelectedQuadStream({
+                                    deviceId: device.id,
+                                    quadrant: q,
+                                  })
                                 }
-                                disabled={!active || stopQuadrant.isPending}
+                                disabled={!active}
                                 title={
                                   active
-                                    ? `Stop quadrant ${q + 1}`
+                                    ? `Manage ${active.channelName || `slot ${q + 1}`}`
                                     : `Quadrant ${q + 1} empty`
                                 }
                                 className={`flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
@@ -295,7 +355,9 @@ export default function Devices() {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => seizeDevice.mutate({ id: device.id, body: {} })}
+                    onClick={() =>
+                      seizeDevice.mutate({ id: device.id, body: {} })
+                    }
                     disabled={seizeDevice.isPending}
                     title="Bring Celesti to the foreground"
                     className="gap-1 rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20"
@@ -303,21 +365,30 @@ export default function Devices() {
                     <Monitor size={14} />
                     Seize
                   </Button>
+                  {device.layoutMode === "single" && device.activeChannelId && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() =>
+                        restartStream.mutate({ id: device.id, body: {} })
+                      }
+                      disabled={restartStream.isPending}
+                      title={`Reload ${device.activeChannelName || "the current stream"}`}
+                      className="gap-1 rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20"
+                    >
+                      <RefreshCw size={14} />
+                      Reload Stream
+                    </Button>
+                  )}
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => restartStream.mutate({ id: device.id, body: {} })}
-                    disabled={restartStream.isPending}
-                    title="Restart the current stream"
-                    className="gap-1 rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20"
-                  >
-                    <RefreshCw size={14} />
-                    Stream
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => adjustVolume.mutate({ id: device.id, body: { delta: -10 } })}
+                    onClick={() =>
+                      adjustVolume.mutate({
+                        id: device.id,
+                        body: { delta: -10 },
+                      })
+                    }
                     disabled={adjustVolume.isPending}
                     title="Lower volume"
                     className="gap-1 rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20"
@@ -327,7 +398,12 @@ export default function Devices() {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() => adjustVolume.mutate({ id: device.id, body: { delta: 10 } })}
+                    onClick={() =>
+                      adjustVolume.mutate({
+                        id: device.id,
+                        body: { delta: 10 },
+                      })
+                    }
                     disabled={adjustVolume.isPending}
                     title="Raise volume"
                     className="gap-1 rounded-lg border-sand/30 bg-white dark:border-sand/50 dark:bg-sand/10 dark:hover:bg-sand/20"
@@ -386,7 +462,9 @@ export default function Devices() {
                   <Button
                     variant="destructive"
                     size="sm"
-                    onClick={() => restartDevice.mutate({ id: device.id, body: {} })}
+                    onClick={() =>
+                      restartDevice.mutate({ id: device.id, body: {} })
+                    }
                     disabled={restartDevice.isPending}
                     title="Restart the TV (requires device privilege)"
                     className="gap-1 rounded-lg"
@@ -408,6 +486,62 @@ export default function Devices() {
           )}
         </ul>
       </Card>
+
+      <Modal
+        isOpen={!!selectedQuadStream && !!modalStream}
+        onClose={closeQuadStreamModal}
+        title={
+          selectedQuadStream
+            ? `Manage slot ${selectedQuadStream.quadrant + 1}`
+            : "Manage stream"
+        }
+      >
+        {selectedQuadStream && modalStream && (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-sand/20 bg-sand/5 p-3 dark:border-sand/30 dark:bg-sand/10">
+              <p className="text-xs font-medium uppercase tracking-wide text-text-secondary">
+                Now playing
+              </p>
+              <p className="mt-1 font-medium text-text-primary">
+                {modalStream.channelName || "Current channel"}
+              </p>
+              <p className="mt-0.5 text-xs text-text-secondary">
+                Slot {selectedQuadStream.quadrant + 1} on{" "}
+                {modalDevice?.nickname || modalDevice?.deviceCode}
+              </p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-3">
+              <Button
+                variant="destructive"
+                onClick={() => handleQuadStreamAction("stop")}
+                disabled={stopQuadrant.isPending}
+                className="gap-2 rounded-lg"
+              >
+                <Square size={15} />
+                Stop
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => handleQuadStreamAction("reload")}
+                disabled={restartStream.isPending}
+                className="gap-2 rounded-lg"
+              >
+                <RefreshCw size={15} />
+                Reload
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => handleQuadStreamAction("focus")}
+                disabled={focusQuadrantAudio.isPending}
+                className="gap-2 rounded-lg"
+              >
+                <Volume2 size={15} />
+                Focus audio
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       <AlertDialog
         isOpen={!!devicePendingDelete}
